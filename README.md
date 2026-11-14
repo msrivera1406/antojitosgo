@@ -19,7 +19,7 @@ docker compose up --build
 
 Para reiniciar la base de datos (el SQL solo corre con el volumen vacío): `docker compose down -v && docker compose up --build`.
 
-Si el puerto 5000 ya está ocupado en tu máquina (por ejemplo AirPlay en macOS), cambia el mapeo `5000:5000` en tu copia local de `docker-compose.yml`, sin subir ese cambio.
+Si el puerto 5000 ya está ocupado en tu máquina (por ejemplo AirPlay en macOS u otro proyecto), pon `WEB_PORT=5001` en tu `.env` y abre http://localhost:5001. `localhost` con cualquier puerto cuenta como conexión segura, así que el micrófono y el GPS funcionan.
 
 ## Pruebas
 

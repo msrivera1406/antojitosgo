@@ -6,26 +6,32 @@
 Navegador                          Flask                          Externos
   │  GET /api/ia/contexto?lat&lng ─▶ clima.py ───────────────────▶ Open-Meteo
   │                                  ia_contexto.py ─▶ MySQL (puestos cercanos)
-  │  GET /api/ia/token ───────────▶ google-genai: token efímero ─▶ Gemini
+  │  GET /api/ia/token?lat&lng&excluir ─▶ contexto + token efímero (modelo e instrucciones bloqueados) ─▶ Gemini
+  │  POST /api/ia/chat ───────────▶ gemini_chat.py (modelo principal y respaldos) ─▶ Gemini (texto)
   │
   └─ WebSocket (token efímero + system_instruction) ─────────────▶ Gemini Live API
        audio PCM16 16 kHz ▶   ◀ audio PCM 24 kHz
 ```
 
-El servidor solo prepara el contexto y el token. El audio viaja directo del navegador a Gemini, sin pasar por Flask. Si los tokens efímeros resultaran inviables con la versión del SDK que se use, el plan B es un proxy WebSocket en Flask (requiere `flask-sock`), documentado como alternativa, no como parte del MVP.
+El servidor prepara el contexto y el token, y atiende el chat de texto. El audio viaja directo del navegador a Gemini, sin pasar por Flask, usando el SDK JS (`@google/genai`, importado como módulo ES). Los tokens efímeros se crean con `v1beta` y el cliente se conecta con el valor `token.name` como si fuera la API key. Solo sirven para la Live API.
 
-> Verificar en la documentación vigente de Gemini Live: nombre del modelo, versión de API que admite tokens efímeros (`v1alpha` a la fecha de escribir esto), formato exacto de los mensajes del WebSocket y si la transcripción está disponible. Los nombres de este documento son orientativos.
+> Verificado el día de la implementación con `scripts/ia_smoke.py`: token efímero con `live_connect_constraints` (modelo, audio e instrucciones) funciona con los tres modelos de voz. El SDK de Python avisa que el soporte de tokens es experimental. Todo sigue en *preview*, así que los nombres pueden cambiar.
 
 ## Estructura (archivos de esta spec)
 
 ```
-routes/ia_routes.py
-services/clima.py
-services/ia_contexto.py
-static/js/gemini_live.js
-static/css/ia.css
+routes/ia_routes.py            GET /api/ia/contexto, GET /api/ia/token, POST /api/ia/chat
+services/clima.py              Open-Meteo, caché de 10 min, timeout de 3 s
+services/ia_contexto.py        franjas, reglas, cercanos (Haversine), system_instruction
+services/gemini_token.py       lista de modelos, selección con excluir, creación del token efímero
+services/gemini_chat.py        chat de texto con modelos de respaldo y reintentos
+services/limitador.py          límite de peticiones por IP en memoria
+static/js/gemini_live.js       módulo ES: sesión, SDK, micrófono, reproducción, reconexión, chat
+static/js/audio_utils.js       funciones puras (PCM, base64, remuestreo, estados, reintentos)
+static/css/ia.css              estados, animaciones y panel de chat
 templates/partials/boton_ia.html
-tests/test_ia.py
+scripts/ia_smoke.py            verificación manual de clave y modelos (voz y chat)
+tests/test_ia.py               clima, contexto, rutas, token, chat (todo simulado)
 static/js/tests/gemini_live.test.js
 ```
 
@@ -81,10 +87,11 @@ El JSON se serializa con `json.dumps(..., ensure_ascii=False)` y los textos de u
 | Ruta | Respuesta |
 |---|---|
 | `GET /api/ia/contexto?lat=&lng=` | `200 {system_instruction, contexto: {lat, lng, ubicacion_por_defecto, fecha_hora, franja, clima, puestos}}` |
-| `GET /api/ia/token` | `200 {token, model, expira_en}`, `503` sin configuración, `502` si Gemini falla, `429` por límite |
+| `GET /api/ia/token?lat=&lng=&excluir=a,b` | `200 {token, model, expira_en, modelos_restantes}`, `400` coordenadas inválidas, `503` (`no_configurado` o `modelos_agotados`), `502` si Gemini falla, `429` por límite |
+| `POST /api/ia/chat` | `200 {respuesta, modelo}`, `400` cuerpo inválido, `502` configuración, `503` modelos ocupados, `429` por límite |
 
 * Límite por IP con un `dict` de ventanas deslizantes en memoria (10/min). Basta para un MVP de un solo proceso.
-* El token se crea con `google.genai.Client(api_key=..., http_options={"api_version": "v1alpha"}).auth_tokens.create(config={"uses": 1, "expire_time": ..., "new_session_expire_time": ...})`. Verificar contra la versión instalada de `google-genai`.
+* El token se crea con `google.genai.Client(api_key=..., http_options={"api_version": "v1beta"}).auth_tokens.create(config={"uses": 1, "expire_time": ..., "new_session_expire_time": ..., "live_connect_constraints": {"model": modelo, "config": {"response_modalities": ["AUDIO"], "system_instruction": texto}}})` y se devuelve `token.name`. El token también bloquea las transcripciones de entrada y salida. El cliente conecta con el mismo `model` y solo indica `responseModalities: ["AUDIO"]`: se verificó que las instrucciones del token se aplican aunque el cliente no las envíe.
 * Solo se registra en el log el error técnico, nunca la clave.
 
 ## Frontend (`gemini_live.js`)
@@ -101,7 +108,7 @@ inactivo ─toque→ conectando ─ok→ escuchando ⇄ hablando
 |---|---|
 | `soportaVoz()` | Detecta `getUserMedia`, `AudioContext`, `WebSocket` y `window.isSecureContext`. |
 | `obtenerUbicacion()` | `window.AntojitoUbicacion`, o `geolocation`, o centro CDMX. |
-| `iniciarSesion()` | Contexto, token, WebSocket, mensaje de configuración con `system_instruction`. |
+| `iniciarVoz()` | Soporte, micrófono, ubicación y `orquestarConexion` con `pedirToken` y `conectarSDK` (SDK `ai.live.connect`). Un identificador de corrida evita carreras si el usuario cancela y vuelve a tocar. |
 | Captura | `AudioContext` + `AudioWorklet` (con respaldo a `ScriptProcessor` si no existe), remuestreo a 16 kHz, `Float32` a `Int16`, base64 y envío. |
 | Reproducción | Cola de buffers, programación con `AudioBufferSourceNode.start(tiempoSiguiente)` a 24 kHz, y vaciado al interrumpir. |
 | UI | Clases CSS por estado, `aria-live`, transcripción corta. |
@@ -126,6 +133,56 @@ construirMensajeInicial(modelo, systemInstruction) -> object
 </div>
 ```
 Animación de pulso en `escuchando`, ondas en `hablando`, color de alerta en `error`. Respetar `prefers-reduced-motion`.
+
+## Modelos de respaldo y reconexión
+
+### Servidor: `services/gemini_token.py`
+```python
+def modelos_voz() -> list[str]                          # [GEMINI_MODEL, *GEMINI_MODEL_FALLBACKS], sin vacíos ni duplicados
+def elegir_modelo(excluir: list[str]) -> str | None     # primero no excluido; ignora valores ajenos a la lista
+def crear_token(modelo, system_instruction) -> dict     # {token, model, expira_en}; 1 reintento a los 0,5 s
+```
+El token no "prueba" el modelo: crearlo no detecta saturación. La saturación se detecta en el cliente al conectar, y de ahí el parámetro `excluir`, que mantiene al servidor sin estado.
+
+### Cliente: protocolo de reintentos (`audio_utils.js`)
+```js
+clasificarError(evento)      // -> 'reintentable' | 'cambiar_modelo' | 'fatal'
+calcularEspera(intento, aleatorio = Math.random)   // 1000, 2000, 4000 ms ±25 %, tope 8000
+orquestarConexion({ pedirToken, conectar, dormir, reloj, alEstado, cancelado, excluir, maxIntentosPorModelo: 3, tiempoTotalMs: 30000 })
+   // -> {ok:true, sesion, modelo, excluir} | {ok:false, motivo: cancelado|tiempo_agotado|modelos_agotados|no_configurado|servidor_no_responde|fatal}
+```
+Flujo:
+```
+conectar(modelo)
+  ├─ éxito ─────────────────────────────────────────▶ escuchando
+  ├─ reintentable (intento < 3) ─ esperar ─ token nuevo ─▶ conectar(mismo modelo)
+  ├─ reintentable (intento = 3) ─ excluir += modelo ─▶ conectar(siguiente modelo)
+  ├─ cambiar_modelo ─ excluir += modelo ────────────▶ conectar(siguiente modelo)
+  ├─ fatal ─────────────────────────────────────────▶ error (sin reintentos)
+  └─ sin modelos o > 30 s ──────────────────────────▶ error + abrir chat de texto
+```
+`reloj` y `dormir` se inyectan para probar el planificador sin esperas reales.
+
+### Caída a mitad de la conversación
+Se probó la reanudación de sesión (`sessionResumption` con el último `newHandle`) con tokens efímeros en tres variantes: mismo token, token nuevo y token sin el campo bloqueado. En ninguna conservó el contexto de la charla. Por eso, si la sesión se cae, el cliente abre una sesión nueva con token nuevo (prefiriendo el mismo modelo, con 2 intentos antes de pasar al respaldo), vacía la reproducción, limpia la transcripción y avisa "Se reinició la conversación". Los eventos de la sesión vieja se ignoran con un identificador de conexión (`gen`), y una sesión cerrada por el usuario nunca se reconecta.
+
+## Chat de texto
+
+### `services/gemini_chat.py`
+```python
+def modelos_chat() -> list[str]
+def generar_respuesta(system_instruction, historial, mensaje, *, cliente=None, dormir=time.sleep, aleatorio=random.random) -> dict
+    # {respuesta, modelo}. Lanza ChatOcupado (503) o ChatConfiguracion (502)
+def es_reintentable(error) -> bool      # 429, 500, 503, 504, tiempo agotado
+def es_modelo_no_disponible(error) -> bool   # 404
+```
+Para cada modelo: hasta 2 intentos con 0,5 s de espera entre ellos (±25 %), sin espera al cambiar de modelo, 12 s por llamada y 20 s en total. `cliente`, `dormir` y `aleatorio` se inyectan para que las pruebas no hagan esperas ni llamadas de red. Se limita la salida (`max_output_tokens`) y el razonamiento para mantener la latencia baja. Los mensajes del usuario van como `contents` y el contexto como `system_instruction`.
+
+### Interfaz
+Panel dentro de `#zona-ia` con burbujas, entrada y envío. Cambia entre voz y texto sin perder el historial de la página. Se abre solo ante micrófono denegado, sin soporte, sin HTTPS o modelos de voz agotados.
+
+### Límite por IP (`services/limitador.py`)
+Ventana deslizante en memoria: `permitir(clave, maximo, ventana_s=60, ahora=time.monotonic)`. El token usa 10 por minuto y el chat 20.
 
 ## Manejo de errores
 
@@ -152,10 +209,12 @@ Animación de pulso en `escuchando`, ondas en `hablando`, color de alerta en `er
 | `sanitizar_texto` | Quita `\n`, `Ignora lo anterior`, recorta a 80 |
 | Cercanos | Con semillas, un punto a 500 m aparece, uno a 10 km no, orden por distancia, máx. 10 |
 | `GET /contexto` | Feliz (`system_instruction` contiene nombre de un puesto y la hora), sin coordenadas, coordenadas no numéricas (`400`), fuera de rango (`400`), fuera de CDMX (puestos vacíos), clima caído (sin sección de clima) |
-| `GET /token` | Sin clave `503`, Gemini simulado `502`, feliz sin la clave en el cuerpo, `429` tras 10 llamadas |
+| `GET /token` | Sin clave `503 no_configurado`, feliz sin la clave en el cuerpo, `excluir` salta al respaldo, `excluir` con todos da `503 modelos_agotados`, `excluir` con valores ajenos se ignora, coordenadas inválidas `400`, Gemini simulado con `503` reintenta una vez y luego `502`, `429` tras 10 llamadas |
+| `POST /chat` | Feliz, cuerpo inválido (mensaje vacío, > 500 caracteres, historial > 10, rol desconocido) `400`, el principal da `503` y responde el respaldo, `404` salta de inmediato, `400/401/403` detiene con `502`, todos fallan `503`, reintentos y esperas con reloj simulado, mensaje del usuario nunca aparece dentro del `system_instruction`, `429` tras 20 llamadas |
+| `elegir_modelo` | Sin exclusiones devuelve el principal, excluye el principal devuelve el primer respaldo, todos excluidos devuelve `None`, ignora nombres ajenos, sin duplicados |
 
 ### `static/js/tests/gemini_live.test.js` (`node --test`)
-Conversión `float32AInt16` (silencio, +1, -1, fuera de rango), ida y vuelta base64, `remuestrear` (longitud esperada de 48 kHz a 16 kHz), `siguienteEstado` (transiciones válidas e inválidas) y `construirMensajeInicial`.
+Planificador de reintentos (`clasificarError` con cada tipo de fallo, `calcularEspera` 1 s, 2 s, 4 s con aleatorio fijo, tope de 8 s, planificador: 3 intentos y cambio de modelo, `cambiar_modelo` inmediato, `fatal` sin reintentos, tope de 30 s, nunca bucle infinito), conversión `float32AInt16` (silencio, +1, -1, fuera de rango), ida y vuelta base64, `remuestrear` (longitud esperada de 48 kHz a 16 kHz), `siguienteEstado` (transiciones válidas e inválidas) y `construirMensajeInicial`.
 
 ### Verificación manual (checklist)
 1. Con clave real, pregunta "¿qué me recomiendas con este frío?" y comprobar que recomienda de la lista.
