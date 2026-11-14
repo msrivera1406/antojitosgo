@@ -31,6 +31,7 @@ Esta spec entrega un asistente de voz que recomienda 1 o 2 puestos del mapa seg�
 8. EL `system_instruction` DEBERÁ incluir las reglas de clima y hora: si llueve o la temperatura es menor a 16 °C, sugerir bebidas calientes, caldos o pan dulce; si es mayor a 25 °C, aguas frescas, nieves o fruta; por la mañana tamales, atole y chilaquiles; a mediodía tortas y tacos; por la tarde y noche esquites, elotes y tacos. LAS reglas de clima aplican solo si hay datos de clima.
 9. CUANDO no haya puestos cercanos, EL `system_instruction` DEBERÁ decirle al agente que lo reconozca con honestidad y sugiera al usuario recomendar un puesto nuevo en la app.
 10. EL texto de nombres y descripciones de puestos que se inserte en el `system_instruction` DEBERÁ sanitizarse (sin saltos de línea ni instrucciones inyectadas, longitud acotada) porque proviene de usuarios.
+11. EL SISTEMA DEBERÁ calcular `abierto_ahora` de cada puesto (verdadero, falso o nulo si el horario no tiene el formato "HH:MM a HH:MM", incluidos los horarios que cruzan la medianoche) con la hora de CDMX, incluirlo en el contexto, e instruir al agente a no recomendar para ir ahora un puesto cerrado y a mencionar solo productos que existan en su lista.
 
 ### R3. Token efímero con modelos de respaldo
 **Historia:** Como equipo, queremos que la API key de Gemini nunca llegue al navegador y que la voz siga funcionando si un modelo está saturado.

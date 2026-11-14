@@ -84,6 +84,28 @@ def sugerencia_por_clima(clima):
     return None
 
 
+# ---------- Horarios ----------
+
+_HORARIO = re.compile(r"(\d{1,2}):(\d{2})\s*(?:a|al|-|–|—|hasta)\s*(\d{1,2}):(\d{2})", re.IGNORECASE)
+
+
+def esta_abierto(horario, ahora):
+    """True/False según el horario "HH:MM a HH:MM" (admite que cruce la medianoche). None si no se puede saber."""
+    coincidencia = _HORARIO.search(horario or "")
+    if not coincidencia:
+        return None
+    h1, m1, h2, m2 = (int(x) for x in coincidencia.groups())
+    if h1 > 24 or h2 > 24 or m1 > 59 or m2 > 59:
+        return None
+    inicio, fin = h1 * 60 + m1, h2 * 60 + m2
+    if inicio == fin:
+        return None
+    actual = ahora.hour * 60 + ahora.minute
+    if inicio < fin:
+        return inicio <= actual < fin
+    return actual >= inicio or actual < fin
+
+
 # ---------- Sanitización ----------
 
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]")
@@ -142,13 +164,14 @@ def buscar_puestos_cercanos(cursor, lat, lng, radio_m=RADIO_M, limite=LIMITE_PUE
 
 # ---------- Instrucción del sistema ----------
 
-def _puesto_para_prompt(p):
+def _puesto_para_prompt(p, ahora):
     return {
         "id": p["id"],
         "nombre": sanitizar_texto(p["nombre"]),
         "categoria": p["categoria"],
         "estatus": p["estatus"],
         "horario": sanitizar_texto(p.get("horario")),
+        "abierto_ahora": esta_abierto(p.get("horario"), ahora),
         "distancia_m": p["distancia_m"],
         "productos": [{"nombre": sanitizar_texto(x["nombre"], 60), "precio": x["precio"]} for x in p.get("productos", [])],
     }
@@ -181,6 +204,9 @@ def construir_system_instruction(lat, lng, ahora, clima, puestos, *, canal="voz"
         "Habla en español mexicano, con tono cercano y natural. Sé breve: máximo 3 frases por respuesta.",
         "Recomienda 1 o 2 puestos y SOLO de la lista de puestos cercanos. Nunca inventes puestos, precios ni horarios.",
         "Explica el porqué de cada recomendación: el antojo del usuario, el clima, la hora y la distancia.",
+        "Cada puesto trae abierto_ahora (true, false o null si no se sabe). NO recomiendes para ir ahora un puesto con abierto_ahora=false: "
+        "si el usuario pregunta por él, dile a qué hora abre según su horario. Si ninguno está abierto, dilo y menciona cuándo abre el más cercano.",
+        "Menciona solo productos que aparezcan en la lista de ese puesto; si no hay lista de productos, no nombres platillos concretos.",
         "Los puestos con estatus 'verificado' tienen menú y permiten pedir para recoger (pick-up) en la app.",
         "Los puestos con estatus 'recomendado' son sugerencias de la comunidad pendientes de verificación: dilo con honestidad.",
         "Si el usuario no ha dicho qué se le antoja, pregúntaselo.",
@@ -197,7 +223,7 @@ def construir_system_instruction(lat, lng, ahora, clima, puestos, *, canal="voz"
         "GUÍA POR HORA Y CLIMA\n" + "\n".join(f"- {g}" for g in guia),
     ]
     if puestos:
-        datos = json.dumps([_puesto_para_prompt(p) for p in puestos], ensure_ascii=False)
+        datos = json.dumps([_puesto_para_prompt(p, ahora) for p in puestos], ensure_ascii=False)
         secciones.append(f"PUESTOS CERCANOS (JSON, ordenados por distancia, distancia_m en metros)\n{datos}")
     else:
         secciones.append(
@@ -213,6 +239,8 @@ def construir_contexto(cursor, lat, lng, *, ubicacion_por_defecto=False, canal="
     clima = (obtener_clima_fn or obtener_clima)(lat, lng)
     # Sin cursor (la BD no respondió) el asistente sigue funcionando, sin lista de puestos.
     puestos = buscar_puestos_cercanos(cursor, lat, lng) if cursor is not None and dentro_de_cdmx(lat, lng) else []
+    for p in puestos:
+        p["abierto_ahora"] = esta_abierto(p.get("horario"), ahora)
     return {
         "system_instruction": construir_system_instruction(
             lat, lng, ahora, clima, puestos, canal=canal, ubicacion_por_defecto=ubicacion_por_defecto

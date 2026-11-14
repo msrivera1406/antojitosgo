@@ -254,6 +254,36 @@ def test_instruccion_el_json_de_puestos_no_incluye_descripcion_ni_texto_libre_la
     assert "Texto libre largo" not in instruccion(puestos=[con_descripcion])
 
 
+# ======================= HORARIOS =======================
+
+@pytest.mark.parametrize("horario,hora,minuto,esperado", [
+    ("07:00 a 12:00", 11, 59, True), ("07:00 a 12:00", 12, 0, False), ("07:00 a 12:00", 7, 0, True),
+    ("07:00 a 12:00", 6, 59, False), ("6:00 a 11:00", 11, 50, False), ("6:00 a 11:00", 8, 0, True),
+    ("17:00 a 23:00", 8, 0, False), ("17:00 a 23:00", 22, 30, True),
+    ("20:00 a 02:00", 23, 0, True), ("20:00 a 02:00", 1, 30, True), ("20:00 a 02:00", 2, 0, False), ("20:00 a 02:00", 12, 0, False),
+    ("9:00 - 18:00", 10, 0, True), ("Lun a Vie 09:00 a 18:00", 10, 0, True), ("09:00 hasta 18:00", 19, 0, False),
+])
+def test_esta_abierto(horario, hora, minuto, esperado):
+    assert ctx.esta_abierto(horario, a_las(hora, minuto)) is esperado
+
+
+@pytest.mark.parametrize("horario", [None, "", "Todo el día", "de mañana", "25:00 a 26:00", "10:00 a 10:00", "10:99 a 11:00"])
+def test_esta_abierto_desconocido(horario):
+    assert ctx.esta_abierto(horario, a_las(10)) is None
+
+
+def test_instruccion_marca_si_el_puesto_esta_abierto():
+    texto = instruccion(ahora=a_las(11, 50), puestos=[dict(PUESTO, horario="06:00 a 11:00"), dict(RECOMENDADO, horario="07:00 a 20:00")])
+    datos = json.loads(next(l for l in texto.split("\n") if l.startswith('[{"id"')))
+    assert datos[0]["abierto_ahora"] is False and datos[1]["abierto_ahora"] is True
+
+
+def test_instruccion_pide_no_recomendar_puestos_cerrados_ni_inventar_productos():
+    texto = instruccion()
+    assert "abierto_ahora=false" in texto
+    assert "Menciona solo productos que aparezcan" in texto
+
+
 # ======================= PUESTOS CERCANOS (MySQL) =======================
 
 CENTRO = (19.4326, -99.1332)
