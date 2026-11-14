@@ -4,20 +4,24 @@
 - `bd`, `cursor`, `nueva_conexion`, `crear_usuario`, `crear_puesto`: BD `antojito_test`, creada una vez
   por sesión desde database.sql y vaciada antes de cada prueba que pida `cursor`.
   Si no hay MySQL disponible, esas pruebas se omiten.
-TODO (4.1): fixture `login` (depende de las rutas de auth) y apuntar `app` a antojito_test.
+- `client_bd`: cliente de Flask conectado a antojito_test, con fotos en una carpeta temporal.
+- `login(client, usuario)`: deja la sesión iniciada sin pasar por la ruta de login.
 """
 import itertools
 import os
 
 import mysql.connector
 import pytest
+from werkzeug.security import generate_password_hash
 
 import config
 from app import create_app
 
 BD_TEST = "antojito_test"
 RUTA_SQL = os.path.join(config.BASE_DIR, "database.sql")
-HASH_DUMMY = "hash-de-prueba"
+PASSWORD_PRUEBA = "Prueba1234"
+# Pocas iteraciones: solo para que las pruebas sean rápidas.
+HASH_PRUEBA = generate_password_hash(PASSWORD_PRUEBA, method="pbkdf2:sha256:1000")
 _contador = itertools.count(1)
 
 
@@ -105,8 +109,9 @@ def crear_usuario(cursor):
         n = next(_contador)
         cursor.execute(
             "INSERT INTO usuarios (nombre, email, password_hash, rol, puntos) VALUES (%s, %s, %s, %s, %s)",
-            (f"Usuario {n}", f"usuario{n}@prueba.mx", HASH_DUMMY, rol, puntos))
-        return {"id": cursor.lastrowid, "rol": rol}
+            (f"Usuario {n}", f"usuario{n}@prueba.mx", HASH_PRUEBA, rol, puntos))
+        return {"id": cursor.lastrowid, "rol": rol, "email": f"usuario{n}@prueba.mx",
+                "password": PASSWORD_PRUEBA}
     return _crear
 
 
@@ -120,3 +125,21 @@ def crear_puesto(cursor):
             (propietario_id, recomendado_por, f"Puesto {n}", categoria, 19.4326, -99.1332, estatus))
         return cursor.lastrowid
     return _crear
+
+@pytest.fixture
+def client_bd(cursor, tmp_path, monkeypatch):
+    """Cliente de Flask que usa antojito_test (vacía) y guarda las fotos en una carpeta temporal."""
+    monkeypatch.setattr(config, "DB_NAME", BD_TEST)
+    monkeypatch.setattr(config, "UPLOAD_DIR", str(tmp_path / "uploads"))
+    app = create_app()
+    app.config.update(TESTING=True)
+    return app.test_client()
+
+
+@pytest.fixture
+def login():
+    def _login(client, usuario):
+        with client.session_transaction() as sesion:
+            sesion["usuario_id"] = usuario["id"]
+            sesion["rol"] = usuario["rol"]
+    return _login

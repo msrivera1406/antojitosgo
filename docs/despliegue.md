@@ -54,3 +54,9 @@ docker compose exec web pytest tests/test_cupones.py
 ```
 
 Usan la BD `antojito_test`, que `tests/conftest.py` crea desde `database.sql` y vacía entre pruebas. No tocan `antojito_db`.
+
+### Pruebas de autenticación y recomendaciones
+
+```bash
+docker compose exec web pytest tests/test_auth.py tests/test_puestos.py
+```

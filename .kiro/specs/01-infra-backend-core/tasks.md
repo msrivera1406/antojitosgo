@@ -20,19 +20,19 @@ Marca cada tarea al terminarla. Las tareas de **Fase 0** desbloquean a los demá
   - [x] 3.5 `app.py` con los cuatro blueprints (los de pedidos e ia vacíos) y rutas de vistas que sirven plantillas
   - [ ] 3.6 Avisar al equipo: "rama base lista"
   - _Requisitos: R3, R6_
-- [ ] 4. Pruebas de la base
-  - [ ] 4.1 `tests/conftest.py` (hay una versión mínima sin BD; falta `antojito_test`) con BD `antojito_test`, fixtures `client`, `crear_usuario`, `login` (**parcial**: ya crea `antojito_test`, `cursor`, `crear_usuario` y `crear_puesto`; falta `login` y apuntar `app` a la BD de pruebas)
+- [x] 4. Pruebas de la base
+  - [x] 4.1 `tests/conftest.py` con BD `antojito_test`, fixtures `client`, `crear_usuario`, `login`
   - [x] 4.2 Pruebas de `utils/puntos.py` (bordes de insignias, `puntos_por_compra`)
   - [x] 4.3 `tests/test_cupones.py` (hitos de recomendación y consumo, límite diario, idempotencia, validación y uso doble)
   - _Requisitos: R6, R8.1_
 
 ## Fase 1: APIs
 
-- [ ] 5. Autenticación (`routes/auth_routes.py`)
-  - [ ] 5.1 `POST /api/auth/registro`
-  - [ ] 5.2 `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
-  - [ ] 5.3 `GET /api/usuarios/<id>/perfil` con insignia, cupones vigentes, progreso y pedidos
-  - [ ] 5.4 `tests/test_auth.py`
+- [x] 5. Autenticación (`routes/auth_routes.py`)
+  - [x] 5.1 `POST /api/auth/registro`
+  - [x] 5.2 `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
+  - [x] 5.3 `GET /api/usuarios/<id>/perfil` con insignia, cupones vigentes, progreso y pedidos
+  - [x] 5.4 `tests/test_auth.py`
   - _Requisitos: R4, R8.2_
 - [ ] 6. Puestos, lectura (`routes/puestos_routes.py`)
   - [ ] 6.1 `GET /api/puestos` con filtros y validación
@@ -40,8 +40,8 @@ Marca cada tarea al terminarla. Las tareas de **Fase 0** desbloquean a los demá
   - [ ] 6.3 Pruebas de lectura
   - _Requisitos: R5.1 a R5.3_
 - [ ] 7. Puestos, escritura
-  - [ ] 7.1 Helper de validación y guardado de foto (firma de bytes, 5 MB, `uuid4`)
-  - [ ] 7.2 `POST /api/puestos/recomendar` (+50 puntos, `recomendado_por`, hito de cupón, todo atómico, limpieza de foto si falla)
+  - [x] 7.1 Helper de validación y guardado de foto (firma de bytes, 5 MB, `uuid4`)
+  - [x] 7.2 `POST /api/puestos/recomendar` (+50 puntos, `recomendado_por`, hito de cupón, todo atómico, limpieza de foto si falla)
   - [ ] 7.3 `POST /api/puestos/crear` con productos en una transacción
   - [ ] 7.4 `GET /api/puestos/mios`, `PUT /api/puestos/<id>`
   - [ ] 7.5 `POST /api/puestos/<id>/productos`, `PATCH /api/productos/<id>`
