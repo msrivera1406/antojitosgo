@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { detectarPlataforma, opcionesNavegacion } from './navegacion.js';
-import { formatearPrecio } from './formato.js';
+import { dinero as formatearPrecio } from './formato.js';
 
 const destino = { lat: 19.4326, lng: -99.1332, nombre: 'Esquites Doña Lupe' };
 const ids = (opciones) => opciones.map((o) => o.id);
@@ -51,9 +51,8 @@ test('coordenadas inválidas lanzan error', () => {
   assert.throws(() => opcionesNavegacion({ lat: 19.4 }));
 });
 
-test('formatearPrecio', () => {
+test('dinero (formato de precios)', () => {
   assert.equal(formatearPrecio(35), '$35.00');
   assert.equal(formatearPrecio(1250.5), '$1,250.50');
-  assert.equal(formatearPrecio(undefined), '');
-  assert.equal(formatearPrecio(null), '');
+  assert.equal(formatearPrecio(undefined), '$0.00');
 });

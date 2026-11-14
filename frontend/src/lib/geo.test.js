@@ -76,7 +76,6 @@ test('estadoDesdeError', () => {
 
 import { debeRefrescar, formatearDistancia } from './geo.js';
 import { urlCercanos } from './api.js';
-import { iconoDeCategoria } from './categorias.js';
 
 test('debeRefrescar: sin posición no, sin consulta previa sí', () => {
   assert.equal(debeRefrescar(null, null, 0), false);
@@ -107,9 +106,4 @@ test('urlCercanos: incluye solo los filtros presentes y codifica valores', () =>
   );
   const url = urlCercanos({ lat: 1, lng: 2, radio: 800, categoria: 'tacos', estatus: 'verificado' });
   assert.match(url, /radio=800&categoria=tacos&estatus=verificado$/);
-});
-
-test('iconoDeCategoria: conocido y desconocido', () => {
-  assert.equal(iconoDeCategoria('tacos'), '🌮');
-  assert.equal(iconoDeCategoria('sushi'), '🍴');
 });

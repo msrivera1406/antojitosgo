@@ -44,39 +44,47 @@ def create_app():
         app.register_blueprint(bp)
 
     # --- Vistas ---
-    # La SPA de React (frontend/dist) atiende "/". Si aún no se ha compilado, se usa la plantilla vieja.
+    # La SPA de React (frontend/dist) atiende todas las vistas. Si aún no se ha compilado
+    # (npm run build en frontend/), se usan las plantillas Jinja de siempre.
     dist = os.path.join(config.BASE_DIR, "frontend", "dist")
 
-    @app.route("/")
-    def index():
+    def vista(plantilla, **contexto):
         if os.path.isfile(os.path.join(dist, "index.html")):
             return send_from_directory(dist, "index.html")
-        return render_template("index.html")
+        return render_template(plantilla, **contexto)
 
     @app.route("/assets/<path:ruta>")
     def assets_frontend(ruta):
         return send_from_directory(os.path.join(dist, "assets"), ruta)
 
+    @app.route("/favicon.svg")
+    def favicon():
+        return send_from_directory(dist, "favicon.svg")
+
+    @app.route("/")
+    def index():
+        return vista("index.html")
+
     @app.route("/puesto/<int:puesto_id>")
     def vista_puesto(puesto_id):
-        return render_template("puesto.html", puesto_id=puesto_id)
+        return vista("puesto.html", puesto_id=puesto_id)
 
     @app.route("/recomendar")
     def vista_recomendar():
-        return render_template("recomendar.html")
+        return vista("recomendar.html")
 
     @app.route("/locatario")
     def vista_locatario():
-        return render_template("locatario.html")
+        return vista("locatario.html")
 
     @app.route("/perfil")
     def vista_perfil():
-        return render_template("perfil.html")
+        return vista("perfil.html")
 
     @app.route("/login")
     @app.route("/registro")
     def vista_login():
-        return render_template("login.html")
+        return vista("login.html")
 
     # --- Salud ---
     @app.route("/api/salud")

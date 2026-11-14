@@ -3,7 +3,7 @@ import { Camera, Send, X } from 'lucide-react';
 import Boton from '../ui/Boton.jsx';
 import Campo from '../ui/Campo.jsx';
 import Alerta from '../ui/Alerta.jsx';
-import SelectorPunto from '../mapa/SelectorPunto.jsx';
+import SelectorPunto from '../mapa/SelectorPuntoCarga.jsx';
 import { nombreDeCategoria } from '../ui/IconoCategoria.jsx';
 import { MAX_NOMBRE, MAX_RESENA, validarRecomendacion } from '../../lib/validaciones.js';
 

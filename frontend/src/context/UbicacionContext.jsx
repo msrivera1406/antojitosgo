@@ -1,62 +1,91 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { CENTRO_CDMX } from '../services/config.js';
+import { CENTRO_CDMX, AREA_METROPOLITANA, PRECISION_MAX_METROS } from '../lib/mapaConfig.js';
+import { aceptarLectura, dentroDelArea, estadoDesdeError, normalizarRumbo } from '../lib/geo.js';
 
 const UbicacionContext = createContext(null);
-const TIEMPO_MAX_MS = 8000;
+const OPCIONES_GPS = { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 };
+
+const AVISOS = {
+  denegado: 'Sin permiso de ubicación. Actívalo en el navegador para ver puestos cerca de ti.',
+  no_disponible: 'No pudimos obtener tu ubicación. Mostramos el centro de la Ciudad de México.',
+  timeout: 'Tu ubicación tardó demasiado en responder. Mostramos el centro de la Ciudad de México.',
+  fuera_de_area: 'Estás fuera del área metropolitana de la Ciudad de México. Por ahora AntojitosGo solo cubre esa zona.',
+};
 
 /**
- * Pide la ubicación solo cuando se solicita (nunca de forma silenciosa) y guarda la última
- * posición en memoria. La expone en window.AntojitoUbicacion para el asistente de voz (spec 03).
- * Estados: 'sin-pedir' | 'buscando' | 'lista' | 'no-disponible'
+ * Ubicación del usuario. Solo empieza a seguirla cuando la persona lo pide con un botón (nunca de forma
+ * silenciosa) y no se guarda en ningún servidor. Se expone en window.AntojitoUbicacion para el asistente.
+ * Estados: 'sin-pedir' | 'buscando' | 'lista' | 'denegado' | 'no_disponible' | 'timeout' | 'fuera_de_area'
  */
 export function UbicacionProvider({ children }) {
-  const [ubicacion, setUbicacion] = useState(null);
+  const [lectura, setLectura] = useState(null);
   const [estado, setEstado] = useState('sin-pedir');
-  const [aviso, setAviso] = useState('');
-  const pedida = useRef(false);
+  const [avisoVisible, setAvisoVisible] = useState(true);
+  const vigilanteRef = useRef(null);
+  const lecturaRef = useRef(null);
+  const rumboRef = useRef(null);
+
+  const detener = () => {
+    if (vigilanteRef.current !== null) navigator.geolocation.clearWatch(vigilanteRef.current);
+    vigilanteRef.current = null;
+  };
 
   const solicitar = useCallback(() => {
     if (!('geolocation' in navigator)) {
-      setEstado('no-disponible');
-      setAviso('Tu navegador no permite ubicarte. Mostramos el centro de la Ciudad de México.');
+      setEstado('no_disponible');
+      setAvisoVisible(true);
       return;
     }
+    detener();
     setEstado('buscando');
-    setAviso('');
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setUbicacion({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setEstado('lista');
+    setAvisoVisible(true);
+    vigilanteRef.current = navigator.geolocation.watchPosition(
+      (p) => {
+        const nueva = {
+          lat: p.coords.latitude,
+          lng: p.coords.longitude,
+          precision: p.coords.accuracy,
+          rumbo: p.coords.heading,
+        };
+        if (!aceptarLectura(lecturaRef.current, nueva, PRECISION_MAX_METROS)) return;
+        // El rumbo del GPS solo es válido en movimiento: si falta, se conserva el último.
+        const rumbo = normalizarRumbo(nueva.rumbo);
+        if (rumbo !== null) rumboRef.current = rumbo;
+        const siguiente = { ...nueva, rumbo: rumboRef.current };
+        lecturaRef.current = siguiente;
+        setLectura(siguiente);
+        setEstado(dentroDelArea(siguiente, AREA_METROPOLITANA) ? 'lista' : 'fuera_de_area');
       },
-      () => {
-        setEstado('no-disponible');
-        setAviso('No pudimos usar tu ubicación. Mostramos el centro de la Ciudad de México.');
+      (error) => {
+        // Un fallo transitorio no invalida una posición ya obtenida.
+        if (lecturaRef.current && error.code !== 1) return;
+        setEstado(estadoDesdeError(error.code));
       },
-      { enableHighAccuracy: true, timeout: TIEMPO_MAX_MS, maximumAge: 60000 },
+      OPCIONES_GPS,
     );
   }, []);
 
-  const pedirUnaVez = useCallback(() => {
-    if (pedida.current) return;
-    pedida.current = true;
-    solicitar();
-  }, [solicitar]);
+  useEffect(() => detener, []);
+
+  const dentro = lectura !== null && dentroDelArea(lectura, AREA_METROPOLITANA);
+  const ubicacion = dentro ? { lat: lectura.lat, lng: lectura.lng } : null;
 
   useEffect(() => {
     window.AntojitoUbicacion = ubicacion ? { ...ubicacion } : undefined;
-  }, [ubicacion]);
+  }, [ubicacion?.lat, ubicacion?.lng]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const valor = useMemo(
     () => ({
       ubicacion,
+      precision: dentro ? lectura.precision : null,
+      rumbo: dentro ? lectura.rumbo : null,
       estado,
-      aviso,
-      descartarAviso: () => setAviso(''),
+      aviso: avisoVisible ? AVISOS[estado] ?? '' : '',
+      descartarAviso: () => setAvisoVisible(false),
       solicitar,
-      pedirUnaVez,
-      centro: ubicacion ?? { lat: CENTRO_CDMX.lat, lng: CENTRO_CDMX.lng },
+      centro: ubicacion ?? { lat: CENTRO_CDMX[1], lng: CENTRO_CDMX[0] },
     }),
-    [ubicacion, estado, aviso, solicitar, pedirUnaVez],
+    [ubicacion?.lat, ubicacion?.lng, dentro, lectura, estado, avisoVisible, solicitar], // eslint-disable-line react-hooks/exhaustive-deps
   );
   return <UbicacionContext.Provider value={valor}>{children}</UbicacionContext.Provider>;
 }

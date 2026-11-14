@@ -7,7 +7,7 @@ import { useUbicacion } from '../../context/UbicacionContext.jsx';
  * Pide la ubicación con una acción explícita (nunca de forma silenciosa) y explica para qué se usa.
  * Si falla o se niega, muestra un aviso breve y no bloqueante.
  */
-export default function AvisoUbicacion({ descartado, onDescartar }) {
+export default function AvisoUbicacion({ descartado, onDescartar, ocultarInvitacionEnMovil = false }) {
   const { estado, aviso, descartarAviso, solicitar } = useUbicacion();
 
   if (aviso) {
@@ -28,7 +28,7 @@ export default function AvisoUbicacion({ descartado, onDescartar }) {
 
   if (estado !== 'sin-pedir' || descartado) return null;
   return (
-    <div className="flex flex-col gap-3 rounded-tarjeta bg-primario-50 p-4">
+    <div className={`flex flex-col gap-3 rounded-tarjeta bg-primario-50 p-4 ${ocultarInvitacionEnMovil ? 'max-lg:hidden' : ''}`}>
       <div className="flex gap-3">
         <LocateFixed className="mt-0.5 h-6 w-6 shrink-0 text-primario-600" aria-hidden="true" />
         <p className="text-tinta-800">

@@ -7,7 +7,7 @@ import { useTitulo } from '../hooks/useTitulo.js';
 import FiltrosPuestos from '../components/puestos/FiltrosPuestos.jsx';
 import ResultadosPuestos from '../components/puestos/ResultadosPuestos.jsx';
 import DetallePuesto from '../components/puestos/DetallePuesto.jsx';
-import MapaPuestos from '../components/mapa/MapaPuestos.jsx';
+import MapaPuestos from '../components/mapa/MapaPuestosCarga.jsx';
 import AvisoUbicacion from '../components/mapa/AvisoUbicacion.jsx';
 import PanelInferior from '../components/ui/PanelInferior.jsx';
 import AsistenteIA from '../components/ia/AsistenteIA.jsx';
@@ -24,7 +24,7 @@ const VISTAS = [
 export default function Inicio() {
   useTitulo('');
   const { filtrados, todos, categorias, cargando, error, recargar, filtros, cambiarFiltros, limpiarFiltros } = usePuestos();
-  const { ubicacion, estado, solicitar } = useUbicacion();
+  const { ubicacion, precision, rumbo, estado, solicitar } = useUbicacion();
   const [vista, setVista] = useState('mapa');
   const [seleccionadoId, setSeleccionadoId] = useState(null);
   const [avisoDescartado, setAvisoDescartado] = useState(false);
@@ -39,7 +39,7 @@ export default function Inicio() {
   };
 
   return (
-    <div className="flex flex-1 flex-col lg:h-[calc(100dvh-4rem)] lg:flex-row lg:overflow-hidden">
+    <div className="flex flex-1 flex-col lg:h-[calc(100dvh-4rem)] lg:flex-none lg:flex-row lg:overflow-hidden">
       {/* Columna de búsqueda y resultados */}
       <div className="flex flex-col lg:w-[26rem] lg:shrink-0 lg:overflow-y-auto lg:border-r lg:border-tinta-100 lg:bg-crema-50">
         <div className="flex flex-col gap-3 px-4 pb-3 pt-4 lg:gap-4 lg:pt-5">
@@ -48,10 +48,8 @@ export default function Inicio() {
             <p className="text-tinta-600">Encuentra puestos de comida callejera en la Ciudad de México.</p>
           </div>
           <FiltrosPuestos filtros={filtros} categorias={categorias} onCambiar={cambiarFiltros} />
-          {/* En móvil, con el mapa a la vista, el aviso se omite para dejarle espacio: el botón "Mi ubicación" del mapa es la acción explícita. */}
-          <div className={vista === 'mapa' ? 'hidden lg:block' : ''}>
-            <AvisoUbicacion descartado={avisoDescartado} onDescartar={() => setAvisoDescartado(true)} />
-          </div>
+          {/* En móvil, con el mapa a la vista, la invitación se omite para dejarle espacio: el botón "Mi ubicación" del mapa es la acción explícita. Los avisos de error siempre se ven. */}
+          <AvisoUbicacion descartado={avisoDescartado} onDescartar={() => setAvisoDescartado(true)} ocultarInvitacionEnMovil={vista === 'mapa'} />
 
           <div className="flex items-center justify-between gap-3">
             <p aria-live="polite" className="font-bold text-tinta-700">
@@ -97,6 +95,8 @@ export default function Inicio() {
           seleccionadoId={seleccionadoId}
           onSeleccionar={setSeleccionadoId}
           ubicacion={ubicacion}
+          precision={precision}
+          rumbo={rumbo}
           estadoUbicacion={estado}
           onCentrar={solicitar}
         >
@@ -104,7 +104,7 @@ export default function Inicio() {
             abierto={Boolean(seleccionado)}
             onCerrar={cerrarPanel}
             titulo={seleccionado?.nombre ?? ''}
-            className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] max-h-[65dvh] md:absolute md:inset-x-auto md:bottom-4 md:left-4 md:max-h-[calc(100%-2rem)] md:w-[24rem]"
+            className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] max-h-[65dvh] md:absolute md:inset-x-auto md:bottom-10 md:left-4 md:max-h-[calc(100%-3.5rem)] md:w-[24rem]"
           >
             {seleccionado && <DetallePuesto puesto={seleccionado} />}
           </PanelInferior>

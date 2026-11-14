@@ -13,8 +13,8 @@ export const TILE_ATRIBUCION =
   '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors';
 
 export const VISTA = {
-  zoomInicial: 12,
-  zoomUsuario: 17,
+  zoomInicial: 13,
+  zoomUsuario: 16,
   zoomMin: 9,
   zoomMax: 19,
   pitchPrimeraPersona: 60,
