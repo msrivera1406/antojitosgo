@@ -78,7 +78,6 @@ def crear_token(modelo, system_instruction, *, fabrica_cliente=None, dormir=time
                 "system_instruction": system_instruction,
                 "input_audio_transcription": {},
                 "output_audio_transcription": {},
-                "session_resumption": {},
             },
         },
     }

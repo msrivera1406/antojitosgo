@@ -35,7 +35,7 @@ Esta spec entrega un asistente de voz que recomienda 1 o 2 puestos del mapa seg�
 ### R3. Token efímero con modelos de respaldo
 **Historia:** Como equipo, queremos que la API key de Gemini nunca llegue al navegador y que la voz siga funcionando si un modelo está saturado.
 
-1. CUANDO se envíe `GET /api/ia/token?lat=&lng=&excluir=`, EL SISTEMA DEBERÁ validar `lat` y `lng` como en R2, construir el contexto y el `system_instruction`, y crear con la API key del servidor un token efímero de un solo uso (30 minutos de vigencia y 1 minuto para iniciar la sesión) con `live_connect_constraints` que **bloqueen el modelo, la modalidad de audio, el `system_instruction`, las transcripciones y la reanudación de sesión**. EL cliente solo necesita indicar `responseModalities: ["AUDIO"]` al conectar: las instrucciones se aplican desde el token (verificado). DEBERÁ responder `{token, model, expira_en, modelos_restantes}`, donde `token` es el valor `name` del token.
+1. CUANDO se envíe `GET /api/ia/token?lat=&lng=&excluir=`, EL SISTEMA DEBERÁ validar `lat` y `lng` como en R2, construir el contexto y el `system_instruction`, y crear con la API key del servidor un token efímero de un solo uso (30 minutos de vigencia y 1 minuto para iniciar la sesión) con `live_connect_constraints` que **bloqueen el modelo, la modalidad de audio, el `system_instruction` y las transcripciones**. EL cliente solo necesita indicar `responseModalities: ["AUDIO"]` al conectar: las instrucciones se aplican desde el token (verificado). DEBERÁ responder `{token, model, expira_en, modelos_restantes}`, donde `token` es el valor `name` del token.
 2. EL modelo DEBERÁ ser el primero de la lista `[GEMINI_MODEL, *GEMINI_MODEL_FALLBACKS]` que no esté en `excluir` (lista separada por comas). LOS valores de `excluir` que no pertenezcan a la lista configurada DEBERÁN ignorarse.
 3. SI todos los modelos están excluidos, EL SISTEMA DEBERÁ responder `503` con `{error, codigo: "modelos_agotados"}`.
 4. SI `GEMINI_API_KEY` o `GEMINI_MODEL` no están configurados, EL SISTEMA DEBERÁ responder `503` con `codigo: "no_configurado"`, y el frontend DEBERÁ ofrecer el chat de texto o un mensaje claro.
@@ -96,8 +96,8 @@ Esta spec entrega un asistente de voz que recomienda 1 o 2 puestos del mapa seg�
 5. ANTE un fallo de tipo "cambiar de modelo", EL SISTEMA DEBERÁ pasar de inmediato al siguiente sin reintentar.
 6. ANTE un fallo fatal, EL SISTEMA NO DEBERÁ reintentar y DEBERÁ mostrar un mensaje claro.
 7. SI se agotan todos los modelos, EL SISTEMA DEBERÁ pasar al estado **error**, mostrar "El asistente de voz está muy ocupado" y abrir el chat de texto (R7.2).
-8. SI la sesión se cae a mitad de una conversación, EL SISTEMA DEBERÁ reconectar con la reanudación de sesión (`sessionResumption`) usando el último identificador recibido, sin perder el hilo. SI no hay identificador o la reanudación falla, DEBERÁ abrir una sesión nueva y avisar "Se reinició la conversación".
-9. CUANDO el servidor avise que cerrará la sesión (`goAway`), EL SISTEMA DEBERÁ reconectar de forma proactiva.
+8. SI la sesión se cae a mitad de una conversación, EL SISTEMA DEBERÁ abrir una sesión nueva con un token nuevo, prefiriendo el mismo modelo, y avisar "Se reinició la conversación". (La reanudación de sesión con `sessionResumption` se probó con tres variantes de token y no conservó el contexto de la charla, por eso no se usa.)
+9. CUANDO el servidor cierre la sesión de forma inesperada (incluido el aviso `goAway`), EL SISTEMA DEBERÁ reconectar con el mismo procedimiento, y NO DEBERÁ reconectar si fue el propio usuario quien la cerró.
 10. EL tiempo total de reconexión DEBERÁ limitarse a 30 s. DESPUÉS DEBERÁ pasar a error.
 11. EL usuario DEBERÁ poder cancelar durante la reconexión tocando el botón, y se DEBERÁN limpiar los temporizadores.
 12. EL SISTEMA NO DEBERÁ entrar nunca en un bucle infinito de reintentos.

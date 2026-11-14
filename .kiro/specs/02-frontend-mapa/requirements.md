@@ -66,7 +66,7 @@ Esta spec cubre la estructura visual base (layout, estilos, cliente de API compa
 4. SI hay error (`401`, `409`, `400`), EL SISTEMA DEBERÁ mostrar el mensaje del servidor sin borrar el email.
 
 ### R7. Integración con la IA
-1. `index.html` DEBERÁ incluir `{% include 'partials/boton_ia.html' %}` y cargar `gemini_live.js` como módulo ES (`type="module"`). Hasta que la spec 03 entregue el parcial, EL SISTEMA DEBERÁ funcionar sin él (usar `{% include ... ignore missing %}`).
+1. `index.html` DEBERÁ incluir `{% include 'partials/boton_ia.html' %}` y dejar que el parcial cargue su propio CSS y su script `gemini_live.js` (módulo ES, `type="module"`), sin añadir nada más. Hasta que la spec 03 entregue el parcial, EL SISTEMA DEBERÁ funcionar sin él (usar `{% include ... ignore missing %}`).
 2. EL SISTEMA DEBERÁ dejar libre la esquina inferior derecha del mapa, por encima de la navegación, para el botón flotante.
 
 ### R8. Pruebas automatizadas

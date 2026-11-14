@@ -47,33 +47,33 @@ Rama de trabajo: `feat/int3-ia`. Pruebas del backend: `docker compose run --rm -
 
 ## Fase 2: Cliente
 
-- [ ] 7. Lógica pura (`static/js/audio_utils.js`) con pruebas
-  - [ ] 7.1 `float32AInt16`, `int16ABase64`, `base64AInt16`, `remuestrear`
-  - [ ] 7.2 `clasificarError`, `calcularEspera`, `crearPlanificador` (reloj inyectado)
-  - [ ] 7.3 `siguienteEstado` y `construirMensajeInicial`
-  - [ ] 7.4 `static/js/tests/gemini_live.test.js` ejecutado con `node --test`
+- [x] 7. Lógica pura (`static/js/audio_utils.js`) con pruebas
+  - [x] 7.1 `float32AInt16`, `int16ABase64`, `base64AInt16`, `remuestrear`
+  - [x] 7.2 `clasificarError`, `calcularEspera`, `orquestarConexion` (reloj y espera inyectados)
+  - [x] 7.3 `siguienteEstado` y `construirMensajeInicial`
+  - [x] 7.4 `static/js/tests/gemini_live.test.js` ejecutado con `node --test`
   - _Requisitos: R8, R9.2_
-- [ ] 8. Interfaz (`partials/boton_ia.html` y `ia.css`)
-  - [ ] 8.1 Botón flotante con estados (incluye `reconectando`), transcripción y `aria-live`
-  - [ ] 8.2 Panel de chat con burbujas, indicador "escribiendo…" y reintento
+- [x] 8. Interfaz (`partials/boton_ia.html` y `ia.css`)
+  - [x] 8.1 Botón flotante con estados (incluye `reconectando`), transcripción y `aria-live`
+  - [x] 8.2 Panel de chat con burbujas, indicador "escribiendo…" y reintento
   - _Requisitos: R4.1, R4.5, R4.11, R7.1, R7.10_
-- [ ] 9. Sesión de voz (`static/js/gemini_live.js`, módulo ES con el SDK de Gemini)
-  - [ ] 9.1 `soportaVoz()` y manejo de falta de soporte o de contexto seguro
-  - [ ] 9.2 Ubicación, token y conexión con `ai.live.connect`
-  - [ ] 9.3 Captura del micrófono (`AudioWorklet` con respaldo), remuestreo a 16 kHz y envío
-  - [ ] 9.4 Reproducción en cola a 24 kHz y vaciado al interrumpir
-  - [ ] 9.5 Reintentos, cambio de modelo con `excluir`, reanudación de sesión y `goAway`
-  - [ ] 9.6 `cerrarSesion()` idempotente, cierre al ocultar la pestaña, límite de 5 min y de 30 s de reconexión
-  - [ ] 9.7 Apertura automática del chat ante micrófono denegado, sin soporte o modelos agotados
+- [x] 9. Sesión de voz (`static/js/gemini_live.js`, módulo ES con el SDK de Gemini)
+  - [x] 9.1 `soportaVoz()` y manejo de falta de soporte o de contexto seguro
+  - [x] 9.2 Ubicación, token y conexión con `ai.live.connect`
+  - [x] 9.3 Captura del micrófono (`AudioWorklet` con respaldo), remuestreo a 16 kHz y envío
+  - [x] 9.4 Reproducción en cola a 24 kHz y vaciado al interrumpir
+  - [x] 9.5 Reintentos, cambio de modelo con `excluir` y reconexión con sesión nueva ante una caída (la reanudación no conservó el contexto)
+  - [x] 9.6 `cerrarSesion()` idempotente, cierre al ocultar la pestaña, límite de 5 min y de 30 s de reconexión
+  - [x] 9.7 Apertura automática del chat ante micrófono denegado, sin soporte o modelos agotados
   - _Requisitos: R4, R5, R7.2, R8_
-- [ ] 10. Chat de texto en el cliente (envío, historial en memoria y errores)
+- [x] 10. Chat de texto en el cliente (envío, historial en memoria y errores)
   - _Requisitos: R7_
 
 ## Fase 3: Integración y verificación
 
-- [ ] 11. Integración con `index.html` (Int. 2): confirmar el `include` del parcial, el `<script type="module">` y que `#zona-ia` no tapa controles del mapa
+- [x] 11. Integración con `index.html`: el parcial es autocontenido (carga su CSS y su módulo); `index.html` solo necesita el `include`. Pendiente confirmar con Int. 2 que `#zona-ia` no tapa controles del mapa (Int. 2): confirmar el `include` del parcial, el `<script type="module">` y que `#zona-ia` no tapa controles del mapa
   - _Requisitos: R4.1_
-- [ ] 12. Verificación manual con la API real
+- [ ] 12. Verificación manual con la API real (ya automatizado en Chrome real con micrófono falso: `scripts/ia_browser_test.mjs`; falta probar con micrófono y altavoz reales y en móvil)
   - [ ] Pregunta "¿qué me recomiendas con este frío?" y comprobar que recomienda de la lista
   - [ ] Interrumpir al agente a media frase y comprobar que se calla
   - [ ] Forzar fallo del modelo principal (cambiar `GEMINI_MODEL` a un nombre falso) y comprobar el cambio al respaldo

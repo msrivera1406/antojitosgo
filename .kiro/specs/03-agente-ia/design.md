@@ -91,7 +91,7 @@ El JSON se serializa con `json.dumps(..., ensure_ascii=False)` y los textos de u
 | `POST /api/ia/chat` | `200 {respuesta, modelo}`, `400` cuerpo inválido, `502` configuración, `503` modelos ocupados, `429` por límite |
 
 * Límite por IP con un `dict` de ventanas deslizantes en memoria (10/min). Basta para un MVP de un solo proceso.
-* El token se crea con `google.genai.Client(api_key=..., http_options={"api_version": "v1beta"}).auth_tokens.create(config={"uses": 1, "expire_time": ..., "new_session_expire_time": ..., "live_connect_constraints": {"model": modelo, "config": {"response_modalities": ["AUDIO"], "system_instruction": texto}}})` y se devuelve `token.name`. El token también bloquea las transcripciones de entrada y salida y la reanudación de sesión. El cliente conecta con el mismo `model` y solo indica `responseModalities: ["AUDIO"]`: se verificó que las instrucciones del token se aplican aunque el cliente no las envíe.
+* El token se crea con `google.genai.Client(api_key=..., http_options={"api_version": "v1beta"}).auth_tokens.create(config={"uses": 1, "expire_time": ..., "new_session_expire_time": ..., "live_connect_constraints": {"model": modelo, "config": {"response_modalities": ["AUDIO"], "system_instruction": texto}}})` y se devuelve `token.name`. El token también bloquea las transcripciones de entrada y salida. El cliente conecta con el mismo `model` y solo indica `responseModalities: ["AUDIO"]`: se verificó que las instrucciones del token se aplican aunque el cliente no las envíe.
 * Solo se registra en el log el error técnico, nunca la clave.
 
 ## Frontend (`gemini_live.js`)
@@ -108,7 +108,7 @@ inactivo ─toque→ conectando ─ok→ escuchando ⇄ hablando
 |---|---|
 | `soportaVoz()` | Detecta `getUserMedia`, `AudioContext`, `WebSocket` y `window.isSecureContext`. |
 | `obtenerUbicacion()` | `window.AntojitoUbicacion`, o `geolocation`, o centro CDMX. |
-| `iniciarSesion()` | Ubicación, token (con `excluir`), `ai.live.connect` del SDK y envío de audio. Lo envuelve el planificador de reintentos. |
+| `iniciarVoz()` | Soporte, micrófono, ubicación y `orquestarConexion` con `pedirToken` y `conectarSDK` (SDK `ai.live.connect`). Un identificador de corrida evita carreras si el usuario cancela y vuelve a tocar. |
 | Captura | `AudioContext` + `AudioWorklet` (con respaldo a `ScriptProcessor` si no existe), remuestreo a 16 kHz, `Float32` a `Int16`, base64 y envío. |
 | Reproducción | Cola de buffers, programación con `AudioBufferSourceNode.start(tiempoSiguiente)` a 24 kHz, y vaciado al interrumpir. |
 | UI | Clases CSS por estado, `aria-live`, transcripción corta. |
@@ -148,8 +148,8 @@ El token no "prueba" el modelo: crearlo no detecta saturación. La saturación s
 ```js
 clasificarError(evento)      // -> 'reintentable' | 'cambiar_modelo' | 'fatal'
 calcularEspera(intento, aleatorio = Math.random)   // 1000, 2000, 4000 ms ±25 %, tope 8000
-crearPlanificador({ maxIntentosPorModelo: 3, tiempoTotalMs: 30000, reloj, dormir })
-   // siguiente(resultadoFallo) -> { accion: 'reintentar'|'cambiar_modelo'|'rendirse', esperaMs, excluir }
+orquestarConexion({ pedirToken, conectar, dormir, reloj, alEstado, cancelado, excluir, maxIntentosPorModelo: 3, tiempoTotalMs: 30000 })
+   // -> {ok:true, sesion, modelo, excluir} | {ok:false, motivo: cancelado|tiempo_agotado|modelos_agotados|no_configurado|servidor_no_responde|fatal}
 ```
 Flujo:
 ```
@@ -163,8 +163,8 @@ conectar(modelo)
 ```
 `reloj` y `dormir` se inyectan para probar el planificador sin esperas reales.
 
-### Reanudación de sesión
-La configuración de la sesión incluye `sessionResumption`. El cliente guarda el último `newHandle` que recibe. Si la sesión se cae a mitad de la charla, reconecta con ese identificador (mismo modelo). Si no hay identificador o falla, abre una sesión nueva y avisa. Con el mensaje `goAway`, reconecta antes del cierre.
+### Caída a mitad de la conversación
+Se probó la reanudación de sesión (`sessionResumption` con el último `newHandle`) con tokens efímeros en tres variantes: mismo token, token nuevo y token sin el campo bloqueado. En ninguna conservó el contexto de la charla. Por eso, si la sesión se cae, el cliente abre una sesión nueva con token nuevo (prefiriendo el mismo modelo, con 2 intentos antes de pasar al respaldo), vacía la reproducción, limpia la transcripción y avisa "Se reinició la conversación". Los eventos de la sesión vieja se ignoran con un identificador de conexión (`gen`), y una sesión cerrada por el usuario nunca se reconecta.
 
 ## Chat de texto
 
