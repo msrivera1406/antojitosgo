@@ -49,7 +49,7 @@ Marca cada tarea al terminarla. Las tareas de **Fase 0** desbloquean a los demá
   - _Requisitos: R5.4 a R5.10, R8.2_
 - [x] 8. Datos semilla
   - [x] 8.1 `scripts/generar_hash.py` y hashes de los usuarios de prueba
-  - [x] 8.2 8 a 10 puestos con productos en Roma, Condesa, Centro y Coyoacán, y los datos de demostración de cupones y pedidos entregados (R2.5)
+  - [x] 8.2 Al menos 8 puestos con productos en lugares reales de la CDMX (hoy 27, incluidos Roma, Condesa, Centro y Coyoacán), y los datos de demostración de cupones y pedidos entregados (R2.5)
   - [x] 8.3 Verificar la carga en phpMyAdmin (`localhost:8080`) con `docker compose down -v && docker compose up --build`
   - [x] 8.4 Prueba que verifique conteos y cobertura de categorías contra `antojito_test`
   - _Requisitos: R2_

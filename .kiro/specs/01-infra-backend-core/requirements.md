@@ -23,7 +23,7 @@ Criterios de aceptación:
 **Historia:** Como equipo, quiero una BD con datos realistas de CDMX, para demostrar el producto desde el primer minuto.
 
 1. EL SISTEMA DEBERÁ crear `antojito_db` con las cinco tablas del esquema de `AntojitoGo.md` sección 5, más la tabla `cupones` y las columnas adicionales descritas en la sección 2.1 del contrato compartido (`usuarios.recomendaciones_contadas`, `puestos.recomendado_por`, `pedidos.cupon_id`). NO se modifican los demás nombres de tablas ni columnas.
-2. EL SISTEMA DEBERÁ insertar entre 8 y 10 puestos en Roma, Condesa, Centro y Coyoacán, con coordenadas reales de esas zonas.
+2. EL SISTEMA DEBERÁ insertar al menos 8 puestos de ejemplo (la semilla actual trae 27) en lugares reales de la CDMX, con coordenadas reales de OpenStreetMap. Deben incluir Roma, Condesa, Centro y Coyoacán, y pueden incluir otras zonas.
 3. DE los puestos semilla, al menos 6 DEBERÁN ser `verificado`, con al menos 3 productos cada uno, y al menos 2 DEBERÁN ser `recomendado`.
 4. LAS 7 categorías válidas DEBERÁN aparecer al menos una vez.
 5. EL SISTEMA DEBERÁ insertar usuarios de prueba: 1 `admin`, 2 `locatario` (cada uno dueño de puestos verificados) y 2 `cliente`. Un cliente tendrá 250 puntos, un cupón vigente de $15 y 4 pedidos `entregado` (total de al menos $50) en un puesto verificado, para demostrar el hito de consumo con un solo pedido más. Las contraseñas de prueba se documentan en `docs/despliegue.md` y están hasheadas en el SQL.
