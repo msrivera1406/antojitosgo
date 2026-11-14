@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { USAR_DUMMY } from '../services/config.js';
 import { List, Map } from 'lucide-react';
 import { usePuestos } from '../hooks/usePuestos.js';
@@ -12,6 +12,8 @@ import MapaPuestos from '../components/mapa/MapaPuestosCarga.jsx';
 import AvisoUbicacion from '../components/mapa/AvisoUbicacion.jsx';
 import PanelInferior from '../components/ui/PanelInferior.jsx';
 import AsistenteIA from '../components/ia/AsistenteIA.jsx';
+import TarjetaRecomendacionIA from '../components/ia/TarjetaRecomendacionIA.jsx';
+import { useRecomendacionIA } from '../hooks/useRecomendacionIA.js';
 
 const VISTAS = [
   { id: 'mapa', etiqueta: 'Mapa', icono: Map },
@@ -31,6 +33,23 @@ export default function Inicio() {
   const [avisoDescartado, setAvisoDescartado] = useState(false);
 
   const seleccionado = todos.find((p) => p.id === seleccionadoId) ?? null;
+
+  // Puestos que recomendó el asistente: se muestran en el mapa aunque los filtros los oculten.
+  const recomendacion = useRecomendacionIA(todos);
+  const recomendados = recomendacion.ids.map((id) => todos.find((p) => p.id === id)).filter(Boolean);
+  const puestosMapa = useMemo(() => {
+    const ids = new Set(filtrados.map((p) => p.id));
+    return [...filtrados, ...recomendados.filter((p) => !ids.has(p.id))];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtrados, recomendacion.ids, todos]);
+
+  // Con cada recomendación nueva se muestra el mapa para que se vea el pin que brilla.
+  useEffect(() => {
+    if (recomendacion.vez > 0) {
+      setVista('mapa');
+      setSeleccionadoId(null);
+    }
+  }, [recomendacion.vez]);
   const cerrarPanel = useCallback(() => setSeleccionadoId(null), []);
   const hayFiltros = hayFiltrosActivos(filtros);
 
@@ -100,7 +119,9 @@ export default function Inicio() {
       {/* Mapa (espacio reservado) */}
       <section aria-label="Mapa de puestos" className={`relative min-h-[24rem] flex-1 flex-col lg:flex ${vista === 'mapa' ? 'flex' : 'hidden'}`}>
         <MapaPuestos
-          puestos={filtrados}
+          puestos={puestosMapa}
+          destacadosIds={recomendacion.ids}
+          vezDestacados={recomendacion.vez}
           seleccionadoId={seleccionadoId}
           onSeleccionar={setSeleccionadoId}
           ubicacion={ubicacion}
@@ -109,6 +130,9 @@ export default function Inicio() {
           estadoUbicacion={estado}
           onCentrar={solicitar}
         >
+          {!seleccionado && (
+            <TarjetaRecomendacionIA puestos={recomendados} onElegir={setSeleccionadoId} onCerrar={recomendacion.limpiar} />
+          )}
           <PanelInferior
             abierto={Boolean(seleccionado)}
             onCerrar={cerrarPanel}

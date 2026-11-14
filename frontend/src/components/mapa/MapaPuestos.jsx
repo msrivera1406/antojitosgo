@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Marker } from 'maplibre-gl';
+import { LngLatBounds, Marker } from 'maplibre-gl';
 import { Box, LocateFixed, LoaderCircle, Map as IconoMapa } from 'lucide-react';
 import { crearMapaBase, ajustarAlTamano } from '../../lib/mapaBase.js';
 import { VISTA } from '../../lib/mapaConfig.js';
 import { circuloGeoJSON } from '../../lib/geo.js';
-import { crearElementoPin, crearElementoUsuario, marcarPinSeleccionado } from './pinsDom.js';
+import { crearElementoPin, crearElementoUsuario, marcarPinDestacado, marcarPinSeleccionado } from './pinsDom.js';
 
 const FUENTE_PRECISION = 'precision-gps';
 const CLASE_CONTROL =
@@ -20,10 +20,13 @@ const CLASE_CONTROL =
  *   ubicacion        { lat, lng } | null, precision (m), rumbo (0 a 360) | null
  *   estadoUbicacion  'sin-pedir' | 'buscando' | 'lista' | ...
  *   onCentrar()      pide la ubicación cuando aún no hay
+ *   destacadosIds    ids que recomendó el asistente (brillan y la cámara va hacia ellos)
+ *   vezDestacados    cambia con cada recomendación nueva, para volver a centrar aunque se repitan
  * `children` se dibuja encima (panel del puesto). Deja libre la esquina inferior derecha (#zona-ia).
  */
 export default function MapaPuestos({
-  puestos, seleccionadoId, onSeleccionar, ubicacion, precision, rumbo, estadoUbicacion, onCentrar, children,
+  puestos, seleccionadoId, onSeleccionar, ubicacion, precision, rumbo, estadoUbicacion, onCentrar,
+  destacadosIds = [], vezDestacados = 0, children,
 }) {
   const contenedorRef = useRef(null);
   const mapaRef = useRef(null);
@@ -119,11 +122,21 @@ export default function MapaPuestos({
     }
   }, [puestos, listo]);
 
-  // Resalta el pin seleccionado y acerca la cámara a él, dejando libre la zona que tapa el panel.
+  // Resalta el pin seleccionado (también cuando cambia la lista de pines).
+  useEffect(() => {
+    if (!mapaRef.current || !listo) return;
+    for (const [id, { marcador }] of pinesRef.current) marcarPinSeleccionado(marcador.getElement(), id === seleccionadoId);
+  }, [seleccionadoId, puestos, listo]);
+
+  // La cámara solo se mueve cuando cambia la selección, no cuando cambia la lista de pines
+  // (si no, interrumpiría el encuadre de una recomendación del asistente).
+  const seleccionPreviaRef = useRef(null);
   useEffect(() => {
     const mapa = mapaRef.current;
     if (!mapa || !listo) return;
-    for (const [id, { marcador }] of pinesRef.current) marcarPinSeleccionado(marcador.getElement(), id === seleccionadoId);
+    const previa = seleccionPreviaRef.current;
+    seleccionPreviaRef.current = seleccionadoId;
+    if (previa === seleccionadoId) return;
     const puesto = puestos.find((p) => p.id === seleccionadoId);
     if (puesto) {
       setSiguiendo(false);
@@ -133,10 +146,46 @@ export default function MapaPuestos({
         padding: movil ? { bottom: 210, top: 0, left: 0, right: 0 } : { left: 400, top: 0, bottom: 0, right: 0 },
         duration: 600,
       });
-    } else {
+    } else if (previa !== null) {
       mapa.easeTo({ padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 400 });
     }
-  }, [seleccionadoId, puestos, listo]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seleccionadoId, listo]);
+
+  // Pines recomendados por el asistente: brillan, y la cámara los encuadra en cada recomendación nueva.
+  useEffect(() => {
+    const mapa = mapaRef.current;
+    if (!mapa || !listo) return;
+    const ids = new Set(destacadosIds);
+    for (const [id, { marcador }] of pinesRef.current) marcarPinDestacado(marcador.getElement(), ids.has(id));
+  }, [destacadosIds, puestos, listo]);
+
+  useEffect(() => {
+    const mapa = mapaRef.current;
+    if (!mapa || !listo || destacadosIds.length === 0) return;
+    const elegidos = puestos.filter((p) => destacadosIds.includes(p.id));
+    if (elegidos.length === 0) return;
+    setSiguiendo(false);
+    const movil = window.matchMedia('(max-width: 767px)').matches;
+    // Arriba queda la tarjeta de la recomendación y abajo el botón del asistente: se deja ese espacio libre.
+    const padding = movil ? { top: 205, bottom: 100, left: 60, right: 60 } : { top: 260, bottom: 130, left: 150, right: 150 };
+    // Vista cenital para que el encuadre sea exacto (con inclinación los pines lejanos quedan fuera).
+    if (elegidos.length === 1) {
+      mapa.easeTo({ center: [elegidos[0].longitud, elegidos[0].latitud], zoom: Math.max(mapa.getZoom(), 15), pitch: 0, bearing: 0, padding, duration: 900 });
+    } else {
+      const caja = new LngLatBounds();
+      elegidos.forEach((p) => caja.extend([p.longitud, p.latitud]));
+      // El encuadre se calcula ya en cenital: con inclinación saldría más cerca y los pines quedarían fuera.
+      // jumpTo es síncrono y se revierte antes de pintar, así que no se ve ningún salto.
+      const previa = { pitch: mapa.getPitch(), bearing: mapa.getBearing() };
+      mapa.jumpTo({ pitch: 0, bearing: 0 });
+      const camara = mapa.cameraForBounds(caja, { padding, maxZoom: 16 });
+      mapa.jumpTo(previa);
+      if (camara) mapa.easeTo({ ...camara, pitch: 0, bearing: 0, duration: 900 });
+    }
+    // Solo en cada recomendación nueva, no cuando cambia la lista por filtros.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vezDestacados, listo]);
 
   // Cámara: sigue a la persona mientras `siguiendo` esté activo.
   useEffect(() => {

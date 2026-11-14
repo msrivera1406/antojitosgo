@@ -13,9 +13,16 @@ export function crearElementoPin(puesto) {
   const verificado = puesto.estatus === 'verificado';
   const boton = document.createElement('button');
   boton.type = 'button';
-  boton.className = 'flex h-11 w-11 items-center justify-center';
+  boton.className = 'relative flex h-11 w-11 items-center justify-center';
   boton.setAttribute('aria-label', `${puesto.nombre}, ${verificado ? 'verificado' : 'recomendación de la comunidad'}`);
   boton.dataset.estatus = puesto.estatus;
+
+  // Halo para cuando el asistente recomienda este puesto (oculto por defecto).
+  const halo = document.createElement('span');
+  halo.dataset.halo = '';
+  halo.setAttribute('aria-hidden', 'true');
+  halo.className = 'pin-halo pointer-events-none absolute inset-0 hidden rounded-full';
+  boton.appendChild(halo);
 
   const cuerpo = document.createElement('span');
   cuerpo.dataset.cuerpo = '';
@@ -35,6 +42,20 @@ export function marcarPinSeleccionado(elemento, activo) {
   cuerpo.classList.toggle('ring-primario-300', activo);
   elemento.style.zIndex = activo ? '10' : '';
   elemento.setAttribute('aria-pressed', String(activo));
+}
+
+/**
+ * Resalta un pin recomendado por el asistente: halo dorado que late, aro y tamaño mayor.
+ * Es distinto del pin seleccionado (aro rojo) y se anuncia en la etiqueta accesible.
+ */
+export function marcarPinDestacado(elemento, activo) {
+  const cuerpo = elemento.querySelector('[data-cuerpo]');
+  elemento.querySelector('[data-halo]').classList.toggle('hidden', !activo);
+  cuerpo.classList.toggle('pin-cuerpo-destacado', activo);
+  if (activo) elemento.style.zIndex = '20';
+  else if (elemento.getAttribute('aria-pressed') !== 'true') elemento.style.zIndex = '';
+  const base = elemento.getAttribute('aria-label').replace(/\. Recomendado por el asistente$/, '');
+  elemento.setAttribute('aria-label', activo ? `${base}. Recomendado por el asistente` : base);
 }
 
 /** Punto "Tú estás aquí" con flecha de rumbo opcional. */

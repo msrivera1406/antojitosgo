@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SUGERENCIAS_IA } from '../services/mock/datos.js';
+import { emitirRespuestaIA } from '../lib/iaEventos.js';
 
 /**
  * SIMULACIÓN del asistente de voz mientras la spec 03 entrega gemini_live.js.
@@ -24,8 +25,10 @@ export function useAsistenteDummy() {
 
   const responder = useCallback(() => {
     setEstado('hablando');
-    setTranscripcion('Para esta hora te recomiendo estos dos puestos que están abiertos cerca de ti.');
+    const texto = 'Para esta hora te recomiendo estos dos puestos que están abiertos cerca de ti.';
+    setTranscripcion(texto);
     setSugerencias(SUGERENCIAS_IA);
+    emitirRespuestaIA(texto, SUGERENCIAS_IA.map((s) => s.id));
     despues(3500, () => setEstado('inactivo'));
   }, []);
 

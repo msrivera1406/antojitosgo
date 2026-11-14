@@ -221,6 +221,12 @@ function alReintento(info) {
 
 // ------------------------------------------------------------------ mensajes del servidor y reproducción
 
+// Avisa a la página que el asistente terminó una respuesta, para que el mapa resalte los puestos
+// que mencionó. Solo se envía el texto de la respuesta (nunca audio). La página decide qué hacer.
+function avisarRespuesta(texto) {
+  if (!texto) return;
+  globalThis.dispatchEvent(new CustomEvent('antojito:ia-respuesta', { detail: { texto } }));
+}
 function manejarMensaje(msg) {
   const r = U.procesarMensajeServidor(msg);
 
@@ -243,6 +249,7 @@ function manejarMensaje(msg) {
   if (r.turnoCompleto) {
     app.turnoCompleto = true;
     app.nuevoTurno = true;
+    avisarRespuesta(app.textoSalida);
     if (app.fuentes.size === 0) setEstado('turno_completo');
   }
 }
@@ -586,6 +593,7 @@ async function enviarChat(texto, esReintento = false) {
 
     escribiendo.remove();
     agregarBurbuja('ia-msg-asistente', datos.respuesta);
+    avisarRespuesta(datos.respuesta);
     chat.historial = U.agregarAlHistorial(chat.historial, 'usuario', valido.texto);
     chat.historial = U.agregarAlHistorial(chat.historial, 'asistente', datos.respuesta);
     $('chat-entrada').value = '';
