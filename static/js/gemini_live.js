@@ -113,6 +113,9 @@ function limpiarTranscripcion() {
 // ------------------------------------------------------------------ ubicación
 
 function obtenerUbicacion() {
+  // Para pruebas: ?ia_ubicacion=19.41,-99.17 en la URL fuerza esa ubicación (útil en un celular fuera de la CDMX).
+  const manual = U.parsearUbicacionManual(new URLSearchParams(globalThis.location.search).get('ia_ubicacion'));
+  if (manual) return Promise.resolve(manual);
   if (globalThis.AntojitoUbicacion && Number.isFinite(globalThis.AntojitoUbicacion.lat)) {
     return Promise.resolve({ lat: globalThis.AntojitoUbicacion.lat, lng: globalThis.AntojitoUbicacion.lng });
   }

@@ -356,3 +356,11 @@ test('mensajeDeErrorChat', () => {
   assert.equal(U.mensajeDeErrorChat(400, null, 'Escribe un mensaje'), 'Escribe un mensaje');
   assert.match(U.mensajeDeErrorChat(500), /No pudimos responderte/);
 });
+
+test('parsearUbicacionManual', () => {
+  assert.deepEqual(U.parsearUbicacionManual('19.4125,-99.169'), { lat: 19.4125, lng: -99.169 });
+  assert.deepEqual(U.parsearUbicacionManual(' 19.4 , -99.1 '), { lat: 19.4, lng: -99.1 });
+  for (const malo of [null, undefined, '', 'abc', '19.4', '19.4,', ',-99', '91,0', '0,181', 'NaN,0', '1,2,3', 'Infinity,0']) {
+    assert.equal(U.parsearUbicacionManual(malo), null, String(malo));
+  }
+});

@@ -288,6 +288,17 @@
     return { ok: true, motivo: '' };
   }
 
+  /** "19.41,-99.17" -> {lat, lng}, o null si no es válido. Sirve para probar el asistente en un celular fuera de la CDMX. */
+  function parsearUbicacionManual(texto) {
+    if (typeof texto !== 'string') return null;
+    const partes = texto.split(',');
+    if (partes.length !== 2 || !partes[0].trim() || !partes[1].trim()) return null;
+    const lat = Number(partes[0]);
+    const lng = Number(partes[1]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+    return { lat: lat, lng: lng };
+  }
+
   // ---------------------------------------------------------------- chat de texto
 
   const MAX_MENSAJE = 500;
@@ -322,7 +333,7 @@
     procesarMensajeServidor, construirConfigConexion,
     clasificarError, calcularEspera, orquestarConexion,
     siguienteEstado, mensajeDeFallo, mensajeDeMicrofono, evaluarSoporte,
-    validarMensajeChat, agregarAlHistorial, mensajeDeErrorChat,
+    validarMensajeChat, agregarAlHistorial, mensajeDeErrorChat, parsearUbicacionManual,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
