@@ -14,3 +14,16 @@ INSERT INTO puestos (nombre, descripcion, categoria, latitud, longitud, horario,
 ('[demo] Atole y Pan Coyoacán',      'Atole de masa y pan dulce',        'bebidas',    19.34960000, -99.16200000, '06:00 a 11:00', 'recomendado'),
 ('[demo] Churros del Ángel',         'Churros rellenos de cajeta',       'postres',    19.42700000, -99.16770000, '16:00 a 22:00', 'verificado'),
 ('[demo] Tacos al Pastor Texcoco',   'Pastor de trompo',                 'tacos',      19.51610000, -98.88280000, '18:00 a 01:00', 'recomendado');
+
+-- Menús de los puestos verificados (se borran con el puesto por ON DELETE CASCADE).
+INSERT INTO productos (puesto_id, nombre, precio, disponible)
+SELECT p.id, m.nombre, m.precio, m.disponible FROM puestos p
+JOIN (
+  SELECT '[demo] Esquites del Zócalo' AS puesto, 'Esquite chico' AS nombre, 35.00 AS precio, TRUE AS disponible
+  UNION ALL SELECT '[demo] Esquites del Zócalo', 'Esquite grande', 50.00, TRUE
+  UNION ALL SELECT '[demo] Esquites del Zócalo', 'Elote con todo', 40.00, FALSE
+  UNION ALL SELECT '[demo] Tacos de Canasta Madero', 'Taco de papa', 8.00, TRUE
+  UNION ALL SELECT '[demo] Tacos de Canasta Madero', 'Taco de chicharrón', 8.00, TRUE
+  UNION ALL SELECT '[demo] Tamales de la Alameda', 'Tamal verde', 22.00, TRUE
+  UNION ALL SELECT '[demo] Tamales de la Alameda', 'Atole de champurrado', 25.00, TRUE
+) m ON m.puesto = p.nombre;

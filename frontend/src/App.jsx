@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import Mapa from './components/Mapa.jsx';
-import TarjetaPuesto from './components/TarjetaPuesto.jsx';
+import PanelPuesto from './components/PanelPuesto.jsx';
 import { useGeolocalizacion } from './hooks/useGeolocalizacion.js';
 import { usePuestosCercanos } from './hooks/usePuestosCercanos.js';
 import { AREA_METROPOLITANA } from './lib/config.js';
@@ -49,7 +49,7 @@ export default function App() {
         seleccionadoId={seleccionadoId}
         onSeleccionar={seleccionar}
       />
-      <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-col gap-2">
+      <div className="pointer-events-none absolute inset-x-3 top-3 z-20 flex flex-col gap-2">
         {aviso && (
           <div role="status" className={claseAviso}>
             {aviso}
@@ -70,7 +70,7 @@ export default function App() {
         )}
       </div>
       {seleccionado && (
-        <TarjetaPuesto puesto={seleccionado} onCerrar={() => seleccionar(null)} />
+        <PanelPuesto key={seleccionado.id} puesto={seleccionado} onCerrar={() => seleccionar(null)} />
       )}
     </div>
   );

@@ -21,3 +21,21 @@ export async function obtenerCercanos(consulta, { signal } = {}) {
   }
   return respuesta.json();
 }
+
+/** Detalle de un puesto con su menú. Lanza Error con el mensaje del servidor si falla. */
+export async function obtenerPuesto(id, { signal } = {}) {
+  const respuesta = await fetch(`/api/puestos/${encodeURIComponent(id)}`, {
+    signal,
+    credentials: 'same-origin',
+  });
+  if (!respuesta.ok) {
+    let mensaje = 'No pudimos cargar el puesto';
+    try {
+      mensaje = (await respuesta.json()).error || mensaje;
+    } catch {
+      /* la respuesta no era JSON */
+    }
+    throw new Error(mensaje);
+  }
+  return respuesta.json();
+}
