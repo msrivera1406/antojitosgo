@@ -89,6 +89,21 @@ CREATE TABLE detalle_pedidos (
 );
 
 
+-- Reseñas: una por usuario y puesto (se puede actualizar). Calificación de 1 a 5 y comentario opcional.
+CREATE TABLE resenas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    puesto_id INT NOT NULL,
+    usuario_id INT NOT NULL,
+    calificacion TINYINT NOT NULL,
+    comentario VARCHAR(500) NOT NULL DEFAULT '',
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_resena_usuario_puesto (usuario_id, puesto_id),
+    INDEX idx_resenas_puesto (puesto_id, creado_en),
+    CHECK (calificacion BETWEEN 1 AND 5),
+    FOREIGN KEY (puesto_id) REFERENCES puestos(id) ON DELETE CASCADE,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+);
 -- ============================================================
 -- DATOS SEMILLA (spec 01, tareas 2 y 8; requisito R2)
 -- Contraseñas de prueba (guardadas como hash pbkdf2:sha256 de werkzeug):
@@ -262,3 +277,10 @@ INSERT INTO detalle_pedidos (pedido_id, producto_id, cantidad, subtotal) VALUES
 (3, 3, 1, 85.00),
 (4, 1, 1, 70.00),
 (4, 3, 1, 85.00);
+
+-- Reseñas de ejemplo (clientes Ana y Beto).
+INSERT INTO resenas (puesto_id, usuario_id, calificacion, comentario) VALUES
+(1, 4, 5, 'Los chilaquiles verdes están deliciosos y la salsa pica lo justo.'),
+(1, 5, 4, 'Muy ricos. A la hora del desayuno hay algo de fila.'),
+(2, 4, 4, 'El tamal de rajas y el atole de vainilla, muy buena combinación.'),
+(3, 5, 5, 'Esquites con todo, porción generosa.');

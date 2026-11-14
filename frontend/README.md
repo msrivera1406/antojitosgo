@@ -11,24 +11,26 @@ npm test         # lógica pura con node --test (Node 18+)
 npm run build    # genera frontend/dist
 ```
 
+## Alcance
+AntojitosGo sirve para **descubrir puestos en el mapa, consultar su menú y dejar reseñas**. No hay pedidos, carrito, pagos ni cupones en la interfaz. Los locatarios administran su menú, sus datos y ven sus reseñas.
+
 ## Datos de ejemplo
-Por defecto `VITE_USAR_DUMMY=true`: no hace falta backend. Las respuestas simuladas están en `src/services/mock/` con la forma del contrato. Para usar la API real, crea `frontend/.env.local` con `VITE_USAR_DUMMY=false`.
-En modo de pruebas, cualquier correo con contraseña de 8 o más caracteres entra. Un correo que empiece con "marco" entra como locatario.
+Por defecto el frontend usa la API real de Flask. Para trabajar sin backend crea `frontend/.env.local` con `VITE_USAR_DUMMY=true`: las respuestas simuladas están en `src/services/mock/`. En ese modo cualquier correo con contraseña de 8 o más caracteres entra, y un correo que empiece con "marco" entra como locatario.
+
+## Con Docker
+`docker compose up --build` levanta la BD, Flask (:5000), phpMyAdmin (:8080) y Vite (:5173, con proxy de `/api` y `/static` hacia Flask). Abre http://localhost:5173. Usuarios de prueba en `database.sql` (por ejemplo `ana@antojito.mx` / `Cliente1234`).
 
 ## Estructura
 ```
-src/lib/          Lógica pura y probada (filtros, validaciones, carrito, lealtad, rutas seguras)
+src/lib/          Lógica pura y probada (filtros, validaciones, geo, navegación, rutas seguras)
 src/services/     apiFetch, endpoints y datos de ejemplo
 src/context/      Sesión y ubicación (expone window.AntojitoUbicacion)
-src/hooks/        Carga, sondeo con pausa por visibilidad, carrito en sessionStorage
-src/components/   ui, layout, puestos, mapa, ia, pedidos, locatario, perfil, auth
+src/components/   ui, layout, puestos, mapa, resenas, ia, locatario, perfil, auth
 src/pages/        Inicio, Login, Recomendar, Puesto, Locatario, Perfil
 ```
 Los tokens de color, tipografía, radios y sombras viven en `tailwind.config.js`.
 
-## Pendientes de integración
-* **Mapa (tarea aparte):** `src/components/mapa/MapaPuestos.jsx` y `SelectorPunto.jsx` son espacios reservados. Sus comentarios describen el contrato (props) para sustituirlos por Leaflet y OpenStreetMap sin tocar las páginas. Deben mostrar la atribución de OpenStreetMap.
-* **Asistente de voz (spec 03):** `src/hooks/useAsistenteDummy.js` simula los estados. El hook real de Gemini Live debe devolver la misma forma.
-* **Servir desde Flask:** `app.py` (Int. 1) debe servir `frontend/dist/index.html` para las rutas `/`, `/puesto/<id>`, `/recomendar`, `/locatario`, `/perfil`, `/login` y `/registro`, y los archivos de `dist/assets`.
-* **Paleta:** `AntojitosGo.pdf`, `Typography.pdf` y `Composición.pdf` no están en el repo. Los colores de `tailwind.config.js` son una propuesta cálida (rojo, rosados, grises cálidos) que debe ajustarse a la paleta oficial.
-* **Fotos:** sin foto, cada tarjeta muestra el icono de su categoría. Con `foto_url` bajo `/static/uploads/` se muestra la foto.
+## Integración
+* **Mapa:** MapLibre GL con teselas de OpenStreetMap (`src/components/mapa/`).
+* **Asistente:** con backend se monta el widget real de Int. 3 (`static/js/gemini_live.js`) desde `src/components/ia/WidgetIA.jsx`. Si cambia `templates/partials/boton_ia.html`, hay que copiar el marcado en `src/components/ia/marcadoIA.js`.
+* **Flask:** `app.py` sirve `frontend/dist` en las rutas de vistas si existe (`npm run build`).

@@ -1,33 +1,21 @@
 import { useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
+import { LogOut, MapPinPlus } from 'lucide-react';
 import Pagina from '../components/layout/Pagina.jsx';
 import RutaProtegida from '../components/auth/RutaProtegida.jsx';
 import Cargando from '../components/ui/Cargando.jsx';
 import Alerta from '../components/ui/Alerta.jsx';
 import Boton from '../components/ui/Boton.jsx';
 import TarjetaInsignia from '../components/perfil/TarjetaInsignia.jsx';
-import PedidosActivos from '../components/perfil/PedidosActivos.jsx';
-import ProgresoLealtad from '../components/perfil/ProgresoLealtad.jsx';
-import SeccionCupones from '../components/perfil/SeccionCupones.jsx';
-import HistorialPedidos from '../components/perfil/HistorialPedidos.jsx';
+import ComoSeGanan from '../components/perfil/ComoSeGanan.jsx';
 import { authApi } from '../services/endpoints.js';
 import { useCarga } from '../hooks/useCarga.js';
-import { useSondeo } from '../hooks/useSondeo.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import { esActivo } from '../lib/pedidos.js';
 import { useTitulo } from '../hooks/useTitulo.js';
-
-const INTERVALO_MS = 15000;
 
 function ContenidoPerfil() {
   const { usuario, cerrarSesion } = useAuth();
   const navegar = useNavigate();
   const perfil = useCarga(() => authApi.perfil(usuario.id), [usuario.id]);
-  const datos = perfil.datos;
-  const activos = (datos?.pedidos ?? []).filter(esActivo);
-
-  // Mientras haya pedidos activos y la pestaña esté visible, se refresca el estado cada 15 s.
-  useSondeo(() => perfil.recargar({ silencioso: true }), INTERVALO_MS, activos.length > 0);
 
   if (perfil.cargando) return <Cargando texto="Cargando tu perfil" className="flex-1" />;
   if (perfil.error) {
@@ -42,11 +30,16 @@ function ContenidoPerfil() {
 
   return (
     <Pagina estrecha>
-      <TarjetaInsignia nombre={usuario.nombre} puntos={datos.puntos} />
-      <PedidosActivos pedidos={activos} />
-      <ProgresoLealtad progreso={datos.progreso} />
-      <SeccionCupones cupones={datos.cupones} />
-      <HistorialPedidos pedidos={datos.pedidos} />
+      <TarjetaInsignia nombre={usuario.nombre} puntos={perfil.datos.puntos ?? usuario.puntos} />
+      <div className="space-y-3 rounded-tarjeta bg-white p-5 shadow-tarjeta">
+        <h2 className="seccion-titulo">Ayuda a la comunidad</h2>
+        <p className="text-tinta-700">¿Conoces un puesto que no está en el mapa? Recomiéndalo y gana 50 puntos. También puedes dejar reseñas en cualquier puesto.</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Boton to="/recomendar" icono={MapPinPlus}>Recomendar un puesto</Boton>
+          <Boton to="/" variante="secundario">Explorar el mapa</Boton>
+        </div>
+      </div>
+      <ComoSeGanan />
       <Boton
         variante="secundario"
         icono={LogOut}

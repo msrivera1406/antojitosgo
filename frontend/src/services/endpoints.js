@@ -21,18 +21,7 @@ export const puestosApi = {
   editarProducto: (id, cuerpo) => apiFetch(`/api/productos/${id}`, { metodo: 'PATCH', cuerpo }),
 };
 
-export const pedidosApi = {
-  crear: (cuerpo) => apiFetch('/api/pedidos', { metodo: 'POST', cuerpo }),
-  delPuesto: (puestoId, estado) =>
-    apiFetch(`/api/pedidos/puesto/${puestoId}${estado ? `?estado=${estado}` : ''}`),
-  cambiarEstado: (id, estado) => apiFetch(`/api/pedidos/${id}/estado`, { metodo: 'PATCH', cuerpo: { estado } }),
-};
-
-export const cuponesApi = {
-  mios: (puestoId) => apiFetch(`/api/cupones/mios${puestoId ? `?puesto_id=${puestoId}` : ''}`),
-};
-
-export const iaApi = {
-  contexto: (lat, lng) => apiFetch(`/api/ia/contexto?lat=${lat}&lng=${lng}`),
-  token: () => apiFetch('/api/ia/token'),
+export const resenasApi = {
+  listar: (puestoId) => apiFetch(`/api/puestos/${puestoId}/resenas`),
+  guardar: (puestoId, cuerpo) => apiFetch(`/api/puestos/${puestoId}/resenas`, { metodo: 'POST', cuerpo }),
 };

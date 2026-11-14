@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { USAR_DUMMY } from '../services/config.js';
 import { List, Map } from 'lucide-react';
 import { usePuestos } from '../hooks/usePuestos.js';
 import { useUbicacion } from '../context/UbicacionContext.jsx';
@@ -32,6 +33,14 @@ export default function Inicio() {
   const seleccionado = todos.find((p) => p.id === seleccionadoId) ?? null;
   const cerrarPanel = useCallback(() => setSeleccionadoId(null), []);
   const hayFiltros = hayFiltrosActivos(filtros);
+
+  // Con el panel del puesto abierto en el mapa, el asistente se oculta en móvil para no taparlo (ver index.css).
+  const panelAbierto = Boolean(seleccionado) && vista === 'mapa';
+  useEffect(() => {
+    if (panelAbierto) document.body.dataset.panelAbierto = '';
+    else delete document.body.dataset.panelAbierto;
+    return () => delete document.body.dataset.panelAbierto;
+  }, [panelAbierto]);
 
   const elegirDesdeLista = (id) => {
     setSeleccionadoId(id);
@@ -111,7 +120,7 @@ export default function Inicio() {
         </MapaPuestos>
       </section>
 
-      <AsistenteIA puestos={todos} oculto={Boolean(seleccionado) && vista === 'mapa'} />
+      {USAR_DUMMY && <AsistenteIA puestos={todos} oculto={panelAbierto} />}
     </div>
   );
 }

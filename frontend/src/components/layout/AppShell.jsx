@@ -1,9 +1,12 @@
-import { Outlet, ScrollRestoration } from 'react-router-dom';
+import { Outlet, ScrollRestoration, useLocation } from 'react-router-dom';
+import WidgetIA from '../ia/WidgetIA.jsx';
+import { USAR_DUMMY } from '../../services/config.js';
 import Encabezado from './Encabezado.jsx';
 import NavegacionInferior from './NavegacionInferior.jsx';
 
 /** Estructura común: enlace para saltar al contenido, cabecera, contenido y navegación inferior. */
 export default function AppShell() {
+  const { pathname } = useLocation();
   return (
     <div className="flex min-h-dvh flex-col">
       <a
@@ -17,6 +20,8 @@ export default function AppShell() {
         <Outlet />
       </main>
       <NavegacionInferior />
+      {/* Sin backend se usa la simulación del asistente que monta la página de inicio. */}
+      {!USAR_DUMMY && <WidgetIA visible={pathname === '/'} />}
       <ScrollRestoration />
     </div>
   );

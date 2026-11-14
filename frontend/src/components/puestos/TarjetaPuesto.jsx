@@ -39,12 +39,12 @@ export default function TarjetaPuesto({ puesto, seleccionado = false, onElegir }
           <EtiquetaEstatus estatus={puesto.estatus} />
         </div>
       </div>
-      {verificado && (
+      {(
         <Link
           to={`/puesto/${puesto.id}`}
           className="flex min-h-toque items-center justify-between border-t border-tinta-100 bg-crema-100 px-4 font-bold text-primario-800 transition hover:bg-primario-50"
         >
-          Ver menú y pedir
+          {verificado ? 'Ver menú y reseñas' : 'Ver reseñas'}
           <ChevronRight className="h-5 w-5" aria-hidden="true" />
         </Link>
       )}

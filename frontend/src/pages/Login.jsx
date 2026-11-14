@@ -35,7 +35,7 @@ export default function Login() {
         <MarcaPin className="h-16 w-16" />
         <h1 className="text-titulo-1">{modo === 'registro' ? 'Crea tu cuenta' : 'Qué bueno verte'}</h1>
         <p className="text-tinta-600">
-          {modo === 'registro' ? 'Gana puntos al recomendar puestos y pide para recoger sin hacer fila.' : 'Entra para pedir, recomendar y ver tus cupones.'}
+          {modo === 'registro' ? 'Descubre puestos, consulta sus menús, deja reseñas y gana puntos al recomendar.' : 'Entra para dejar reseñas, recomendar puestos y ver tus puntos.'}
         </p>
       </header>
 

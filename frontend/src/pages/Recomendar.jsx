@@ -5,7 +5,7 @@ import Cargando from '../components/ui/Cargando.jsx';
 import Alerta from '../components/ui/Alerta.jsx';
 import FormularioRecomendar from '../components/puestos/FormularioRecomendar.jsx';
 import ResultadoRecomendacion from '../components/puestos/ResultadoRecomendacion.jsx';
-import { puestosApi, authApi } from '../services/endpoints.js';
+import { puestosApi } from '../services/endpoints.js';
 import { useCarga } from '../hooks/useCarga.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { rutaLoginConNext } from '../lib/rutas.js';
@@ -15,20 +15,15 @@ export default function Recomendar() {
   useTitulo('Recomendar un puesto');
   const navegar = useNavigate();
   const { pathname } = useLocation();
-  const { usuario, refrescar } = useAuth();
+  const { refrescar } = useAuth();
   const categorias = useCarga(() => puestosApi.categorias(), []);
   const [resultado, setResultado] = useState(null);
-  const [progreso, setProgreso] = useState(null);
 
   const enviar = async (formData) => {
     try {
       const respuesta = await puestosApi.recomendar(formData);
       setResultado(respuesta);
       refrescar();
-      if (!respuesta.cupon_ganado) {
-        // El avance hacia el siguiente cupón es informativo: si falla, no se muestra.
-        authApi.perfil(usuario.id).then((p) => setProgreso(p.progreso?.recomendaciones ?? null)).catch(() => {});
-      }
     } catch (e) {
       if (e.status === 401) navegar(rutaLoginConNext(pathname), { replace: true });
       throw e;
@@ -38,7 +33,7 @@ export default function Recomendar() {
   if (resultado) {
     return (
       <Pagina estrecha>
-        <ResultadoRecomendacion resultado={resultado} progreso={progreso} />
+        <ResultadoRecomendacion resultado={resultado} />
       </Pagina>
     );
   }

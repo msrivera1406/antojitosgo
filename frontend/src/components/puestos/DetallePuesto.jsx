@@ -35,11 +35,9 @@ export default function DetallePuesto({ puesto }) {
       {!verificado && <Alerta tipo="info">{TEXTO_RECOMENDADO}</Alerta>}
       <div className="flex flex-wrap items-center gap-2">
         <ComoLlegar puesto={puesto} />
-        {verificado && (
-          <Boton to={`/puesto/${puesto.id}`} icono={Store} className="min-w-0 flex-1">
-            Ver menú y pedir
-          </Boton>
-        )}
+        <Boton to={`/puesto/${puesto.id}`} icono={Store} className="min-w-0 flex-1">
+          {verificado ? 'Ver menú y reseñas' : 'Ver reseñas'}
+        </Boton>
       </div>
     </div>
   );

@@ -1,23 +1,19 @@
 import { ApiError } from '../api.js';
-import {
-  CATEGORIAS, PUESTOS, PRODUCTOS, USUARIOS, CUPONES, PROGRESO, PEDIDOS_CLIENTE, PEDIDOS_PUESTO,
-} from './datos.js';
+import { CATEGORIAS, PUESTOS, PRODUCTOS, USUARIOS, RESENAS } from './datos.js';
 
 /**
- * Simula el backend con la forma del contrato compartido. Es solo para desarrollo del frontend.
+ * Simula el backend con la forma del contrato. Solo para desarrollo del frontend (VITE_USAR_DUMMY=true).
  * La sesión vive en localStorage; cualquier contraseña de 8 o más caracteres es válida.
  */
 const CLAVE_SESION = 'antojitosgo_dummy_sesion';
-const LATENCIA_MS = 350;
+const LATENCIA_MS = 300;
 
 const estado = {
   puestos: structuredClone(PUESTOS),
   productos: structuredClone(PRODUCTOS),
-  pedidosCliente: structuredClone(PEDIDOS_CLIENTE),
-  pedidosPuesto: structuredClone(PEDIDOS_PUESTO),
-  cupones: structuredClone(CUPONES),
-  siguienteId: 1000,
+  resenas: structuredClone(RESENAS),
   propios: new Set([2]),
+  siguienteId: 1000,
 };
 
 const pausa = (ms = LATENCIA_MS) => new Promise((r) => setTimeout(r, ms));
@@ -36,30 +32,23 @@ const exigirSesion = () => {
   return u;
 };
 
-const nuevoCodigo = () => `ANT-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
-
-function perfilDe(usuario) {
-  return {
-    usuario,
-    puntos: usuario.puntos,
-    cupones: estado.cupones,
-    progreso: PROGRESO,
-    pedidos: estado.pedidosCliente,
-  };
+function resumenResenas(puestoId) {
+  const lista = estado.resenas[puestoId] ?? [];
+  const total = lista.length;
+  const promedio = total ? Math.round((lista.reduce((a, r) => a + r.calificacion, 0) / total) * 10) / 10 : null;
+  return { total, promedio, lista };
 }
 
 export async function responderDummy(metodo, url, cuerpo) {
   await pausa();
-  const [ruta, consulta = ''] = url.split('?');
-  const params = new URLSearchParams(consulta);
+  const [ruta] = url.split('?');
   let m;
 
   if (ruta === '/api/auth/me' && metodo === 'GET') return exigirSesion();
 
   if (ruta === '/api/auth/login' && metodo === 'POST') {
-    const email = (cuerpo?.email ?? '').toLowerCase();
     if ((cuerpo?.password ?? '').length < 8) throw new ApiError(401, 'Correo o contraseña incorrectos');
-    const base = email.startsWith('marco') ? USUARIOS.locatario : USUARIOS.cliente;
+    const base = (cuerpo?.email ?? '').toLowerCase().startsWith('marco') ? USUARIOS.locatario : USUARIOS.cliente;
     const usuario = { ...base, email: cuerpo.email };
     guardarSesion(usuario);
     return usuario;
@@ -100,17 +89,7 @@ export async function responderDummy(metodo, url, cuerpo) {
     };
     estado.puestos.push(puesto);
     guardarSesion({ ...u, puntos: u.puntos + 50 });
-    PROGRESO.recomendaciones.actual = Math.min(PROGRESO.recomendaciones.actual + 1, PROGRESO.recomendaciones.meta);
-    const completa = PROGRESO.recomendaciones.actual >= PROGRESO.recomendaciones.meta;
-    if (completa) PROGRESO.recomendaciones.actual = 0;
-    return {
-      puesto,
-      puntos_ganados: 50,
-      puntos_totales: u.puntos + 50,
-      cupon_ganado: completa
-        ? { id: 99, codigo: 'CUP-X7H2KD', monto: 15, origen: 'recomendacion', puesto: null, vence_en: new Date(Date.now() + 30 * 86400000).toISOString() }
-        : null,
-    };
+    return { puesto, puntos_ganados: 50, puntos_totales: u.puntos + 50, cupon_ganado: null };
   }
 
   if (ruta === '/api/puestos/crear' && metodo === 'POST') {
@@ -123,14 +102,34 @@ export async function responderDummy(metodo, url, cuerpo) {
     return puesto;
   }
 
+  if ((m = ruta.match(/^\/api\/puestos\/(\d+)\/resenas$/))) {
+    const id = Number(m[1]);
+    if (!estado.puestos.some((p) => p.id === id)) throw new ApiError(404, 'No encontramos ese puesto');
+    const u = leerSesion();
+    if (metodo === 'POST') {
+      if (!u) throw new ApiError(401, 'Inicia sesión para continuar');
+      if (estado.propios.has(id) && u.rol === 'locatario') throw new ApiError(403, 'No puedes reseñar tu propio puesto');
+      const lista = (estado.resenas[id] ??= []);
+      const ahora = new Date().toISOString();
+      let resena = lista.find((r) => r.usuario_id === u.id);
+      const existia = Boolean(resena);
+      if (resena) Object.assign(resena, { calificacion: cuerpo.calificacion, comentario: cuerpo.comentario ?? '', actualizado_en: ahora });
+      else {
+        resena = { id: ++estado.siguienteId, usuario_id: u.id, calificacion: cuerpo.calificacion, comentario: cuerpo.comentario ?? '', autor: u.nombre.split(' ')[0], creado_en: ahora, actualizado_en: ahora };
+        lista.unshift(resena);
+      }
+      const { total, promedio } = resumenResenas(id);
+      return { resena, total, promedio, _existia: existia };
+    }
+    const { total, promedio, lista } = resumenResenas(id);
+    return { total, promedio, resenas: lista, mia: u ? lista.find((r) => r.usuario_id === u.id) ?? null : null };
+  }
+
   if ((m = ruta.match(/^\/api\/puestos\/(\d+)$/))) {
     const id = Number(m[1]);
     const puesto = estado.puestos.find((p) => p.id === id);
-    if (!puesto) throw new ApiError(404, 'No encontramos lo que buscas');
-    if (metodo === 'PUT') {
-      Object.assign(puesto, cuerpo);
-      return puesto;
-    }
+    if (!puesto) throw new ApiError(404, 'No encontramos ese puesto');
+    if (metodo === 'PUT') return Object.assign(puesto, cuerpo);
     return { ...puesto, productos: estado.productos[id] ?? [] };
   }
 
@@ -150,61 +149,9 @@ export async function responderDummy(metodo, url, cuerpo) {
     throw new ApiError(404, 'No encontramos lo que buscas');
   }
 
-  if ((m = ruta.match(/^\/api\/usuarios\/(\d+)\/perfil$/))) return perfilDe(exigirSesion());
-
-  if (ruta === '/api/cupones/mios') {
-    exigirSesion();
-    const puestoId = Number(params.get('puesto_id'));
-    return estado.cupones.filter((c) => !puestoId || !c.puesto || c.puesto.id === puestoId);
-  }
-
-  if (ruta === '/api/pedidos' && metodo === 'POST') {
-    exigirSesion();
-    const puesto = estado.puestos.find((p) => p.id === cuerpo.puesto_id);
-    if (!puesto) throw new ApiError(404, 'No encontramos lo que buscas');
-    if (puesto.estatus !== 'verificado') throw new ApiError(409, 'Este puesto aún no acepta pedidos');
-    const catalogo = estado.productos[puesto.id] ?? [];
-    let subtotal = 0;
-    const items = cuerpo.items.map((it) => {
-      const prod = catalogo.find((p) => p.id === it.producto_id);
-      if (!prod || !prod.disponible) throw new ApiError(400, 'Un producto ya no está disponible');
-      subtotal += prod.precio * it.cantidad;
-      return { producto_id: prod.id, nombre: prod.nombre, cantidad: it.cantidad, subtotal: prod.precio * it.cantidad };
-    });
-    let cupon = null;
-    let descuento = 0;
-    if (cuerpo.cupon_id) {
-      const c = estado.cupones.find((x) => x.id === cuerpo.cupon_id);
-      if (!c) throw new ApiError(400, 'Cupón no válido');
-      if (subtotal < c.monto * 3) throw new ApiError(400, `Compra mínima de $${c.monto * 3} para usar este cupón`);
-      descuento = Math.min(c.monto, subtotal);
-      cupon = { id: c.id, codigo: c.codigo, monto: c.monto };
-      estado.cupones = estado.cupones.filter((x) => x.id !== c.id);
-    }
-    const pedido = {
-      id: ++estado.siguienteId, codigo_pickup: nuevoCodigo(), estado: 'pendiente',
-      subtotal, descuento_aplicado: descuento, total: subtotal - descuento,
-      creado_en: new Date().toISOString(), cupon, puesto: { id: puesto.id, nombre: puesto.nombre }, items,
-    };
-    estado.pedidosCliente.unshift(pedido);
-    return { pedido, cupon_usado: cupon };
-  }
-
-  if ((m = ruta.match(/^\/api\/pedidos\/puesto\/(\d+)$/))) {
+  if (ruta.match(/^\/api\/usuarios\/(\d+)\/perfil$/)) {
     const u = exigirSesion();
-    if (u.rol === 'cliente') throw new ApiError(403, 'No tienes permiso para esta acción');
-    return estado.pedidosPuesto.filter((p) => p.estado !== 'entregado');
-  }
-
-  if ((m = ruta.match(/^\/api\/pedidos\/(\d+)\/estado$/)) && metodo === 'PATCH') {
-    exigirSesion();
-    const pedido = estado.pedidosPuesto.find((p) => p.id === Number(m[1]));
-    if (!pedido) throw new ApiError(404, 'No encontramos lo que buscas');
-    const siguiente = { pendiente: 'listo', listo: 'entregado' }[pedido.estado];
-    if (siguiente !== cuerpo.estado) throw new ApiError(409, 'Ese cambio de estado no es válido');
-    pedido.estado = siguiente;
-    const puntos = siguiente === 'entregado' ? 10 * Math.floor(pedido.total / 50) : 0;
-    return { pedido, puntos_otorgados: puntos, cupon_ganado: null };
+    return { ...u };
   }
 
   throw new ApiError(404, 'No encontramos lo que buscas');

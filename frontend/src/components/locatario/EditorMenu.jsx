@@ -124,7 +124,7 @@ export default function EditorMenu({ puestoId, productos, onCambio }) {
         <h2 className="text-titulo-3">Tu menú</h2>
         {productos.length === 0 ? (
           <EstadoVacio icono={Utensils} titulo="Aún no tienes productos">
-            Agrega tu primer producto para empezar a recibir pedidos.
+            Agrega tu primer producto para que la gente vea qué vendes y a qué precio.
           </EstadoVacio>
         ) : (
           <ul className="divide-y divide-tinta-100">

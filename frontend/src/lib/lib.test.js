@@ -4,9 +4,7 @@ import { normalizarTexto } from './texto.js';
 import { filtrarPuestos } from './filtros.js';
 import { esRutaInternaSegura, destinoTrasLogin } from './rutas.js';
 import { validarRecomendacion, validarAcceso, validarProducto } from './validaciones.js';
-import { agregarProducto, cambiarCantidad, subtotal, calcularTotales, armarPedido, sanearCarrito } from './carrito.js';
 import { nivelPorPuntos, progresoNivel } from './lealtad.js';
-import { coincideCodigo, accionSiguiente } from './pedidos.js';
 import { fotoSegura } from './fotos.js';
 
 const PUESTOS = [
@@ -73,41 +71,6 @@ test('validarProducto', () => {
   assert.equal(validarProducto({ nombre: 'Taco', precio: '18.5' }).ok, true);
 });
 
-test('carrito: agregar, cantidades y totales sin errores de coma flotante', () => {
-  let c = [];
-  c = agregarProducto(c, { id: 1, nombre: 'Esquite', precio: 0.1 });
-  c = agregarProducto(c, { id: 1, nombre: 'Esquite', precio: 0.1 });
-  c = agregarProducto(c, { id: 1, nombre: 'Esquite', precio: 0.1 });
-  assert.equal(c[0].cantidad, 3);
-  assert.equal(subtotal(c), 0.3);
-  c = cambiarCantidad(c, 1, 99);
-  assert.equal(c[0].cantidad, 20);
-  c = cambiarCantidad(c, 1, 0);
-  assert.equal(c.length, 0);
-});
-
-test('calcularTotales aplica el cupón solo con compra mínima', () => {
-  const carrito = [{ producto_id: 1, nombre: 'a', precio: 40, cantidad: 1 }];
-  const cupon = { id: 4, monto: 15 };
-  assert.deepEqual(calcularTotales(carrito, cupon), { subtotal: 40, descuento: 0, total: 40 });
-  const mas = [{ producto_id: 1, nombre: 'a', precio: 40, cantidad: 2 }];
-  assert.deepEqual(calcularTotales(mas, cupon), { subtotal: 80, descuento: 15, total: 65 });
-  assert.deepEqual(calcularTotales(mas, null), { subtotal: 80, descuento: 0, total: 80 });
-});
-
-test('armarPedido no envía precios ni totales', () => {
-  const cuerpo = armarPedido(3, [{ producto_id: 9, nombre: 'x', precio: 35, cantidad: 2 }], { id: 4 });
-  assert.deepEqual(cuerpo, { puesto_id: 3, items: [{ producto_id: 9, cantidad: 2 }], cupon_id: 4 });
-  assert.equal('cupon_id' in armarPedido(3, [], null), false);
-});
-
-test('sanearCarrito descarta datos corruptos', () => {
-  assert.deepEqual(sanearCarrito('x'), []);
-  const limpio = sanearCarrito([{ producto_id: 1, nombre: 'a', precio: 10, cantidad: 500 }, { foo: 1 }]);
-  assert.equal(limpio.length, 1);
-  assert.equal(limpio[0].cantidad, 20);
-});
-
 test('niveles de insignia según el contrato', () => {
   assert.equal(nivelPorPuntos(0).id, 'explorador');
   assert.equal(nivelPorPuntos(149).id, 'explorador');
@@ -117,13 +80,6 @@ test('niveles de insignia según el contrato', () => {
   assert.equal(p.faltan, 30);
   assert.equal(p.siguiente.id, 'cazador');
   assert.equal(progresoNivel(900).maximo, true);
-});
-
-test('pedidos: código y acciones', () => {
-  assert.equal(coincideCodigo({ codigo_pickup: 'ANT-482' }, 'ant 482'), true);
-  assert.equal(coincideCodigo({ codigo_pickup: 'ANT-482' }, '999'), false);
-  assert.equal(accionSiguiente('pendiente').estado, 'listo');
-  assert.equal(accionSiguiente('entregado'), null);
 });
 
 test('fotoSegura solo acepta uploads propios', () => {

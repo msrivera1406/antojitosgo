@@ -9,8 +9,8 @@ import config
 from db import get_connection
 from routes.auth_routes import auth_bp
 from routes.ia_routes import ia_bp
-from routes.pedidos_routes import pedidos_bp
 from routes.puestos_routes import puestos_bp
+from routes.resenas_routes import resenas_bp
 from utils.respuestas import ProveedorJSON, error
 
 
@@ -40,7 +40,7 @@ def create_app():
     # El frontend se sirve desde el mismo origen; CORS queda restringido por si se separa.
     CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": os.getenv("CORS_ORIGINS", "http://localhost:5000")}})
 
-    for bp in (auth_bp, puestos_bp, pedidos_bp, ia_bp):
+    for bp in (auth_bp, puestos_bp, resenas_bp, ia_bp):
         app.register_blueprint(bp)
 
     # --- Vistas ---

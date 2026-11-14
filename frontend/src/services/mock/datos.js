@@ -43,34 +43,21 @@ export const USUARIOS = {
   locatario: { id: 2, nombre: 'Marco', email: 'marco@correo.com', rol: 'locatario', puntos: 40 },
 };
 
-const en = (dias) => new Date(Date.now() + dias * 86400000).toISOString();
-const hace = (min) => new Date(Date.now() - min * 60000).toISOString();
+const hace = (dias) => new Date(Date.now() - dias * 86400000).toISOString();
 
-export const CUPONES = [
-  { id: 4, codigo: 'CUP-7K2Q9X', monto: 15, origen: 'recomendacion', puesto: null, vence_en: en(22) },
-  { id: 5, codigo: 'CUP-M3N8TW', monto: 20, origen: 'consumo', puesto: { id: 2, nombre: 'Tacos Los Cuates' }, vence_en: en(9) },
-];
 
-export const PROGRESO = {
-  recomendaciones: { actual: 2, meta: 5, contables_hoy_restantes: 1 },
-  consumo: [
-    { puesto_id: 2, puesto_nombre: 'Tacos Los Cuates', actual: 4, meta: 5 },
-    { puesto_id: 1, puesto_nombre: 'Esquites La Esquina', actual: 1, meta: 5 },
+export const RESENAS = {
+  1: [
+    { id: 1, calificacion: 5, comentario: 'Los esquites con chile de árbol están buenísimos.', autor: 'Beto', creado_en: hace(2), actualizado_en: hace(2) },
+    { id: 2, calificacion: 4, comentario: 'Porción generosa. A veces hay fila.', autor: 'Sofía', creado_en: hace(6), actualizado_en: hace(6) },
+  ],
+  2: [
+    { id: 3, calificacion: 5, comentario: 'El pastor con piña, de lo mejor de la zona.', autor: 'Luis', creado_en: hace(1), actualizado_en: hace(1) },
+  ],
+  5: [
+    { id: 4, calificacion: 4, comentario: 'La de milanesa es enorme.', autor: 'Ana', creado_en: hace(10), actualizado_en: hace(10) },
   ],
 };
-
-export const PEDIDOS_CLIENTE = [
-  { id: 31, codigo_pickup: 'ANT-482', estado: 'listo', subtotal: 70, descuento_aplicado: 0, total: 70, creado_en: hace(14), cupon: null, puesto: { id: 1, nombre: 'Esquites La Esquina' } },
-  { id: 30, codigo_pickup: 'ANT-117', estado: 'pendiente', subtotal: 54, descuento_aplicado: 0, total: 54, creado_en: hace(4), cupon: null, puesto: { id: 2, nombre: 'Tacos Los Cuates' } },
-  { id: 22, codigo_pickup: 'ANT-305', estado: 'entregado', subtotal: 90, descuento_aplicado: 15, total: 75, creado_en: hace(3000), cupon: { id: 3, codigo: 'CUP-A2B4C6', monto: 15 }, puesto: { id: 2, nombre: 'Tacos Los Cuates' } },
-  { id: 19, codigo_pickup: 'ANT-064', estado: 'entregado', subtotal: 105, descuento_aplicado: 0, total: 105, creado_en: hace(9000), cupon: null, puesto: { id: 4, nombre: 'Chilaquiles Buen Día' } },
-];
-
-export const PEDIDOS_PUESTO = [
-  { id: 41, codigo_pickup: 'ANT-208', estado: 'pendiente', subtotal: 105, descuento_aplicado: 0, total: 105, creado_en: hace(3), cliente: { nombre: 'Ana' }, items: [{ producto_id: 21, nombre: 'Taco al pastor', cantidad: 3, subtotal: 54 }, { producto_id: 24, nombre: 'Gringa', cantidad: 1, subtotal: 45 }, { producto_id: 22, nombre: 'Taco de suadero', cantidad: 1, subtotal: 18 }] },
-  { id: 40, codigo_pickup: 'ANT-731', estado: 'pendiente', subtotal: 44, descuento_aplicado: 0, total: 44, creado_en: hace(7), cliente: { nombre: 'Luis' }, items: [{ producto_id: 23, nombre: 'Campechano', cantidad: 2, subtotal: 44 }] },
-  { id: 38, codigo_pickup: 'ANT-452', estado: 'listo', subtotal: 90, descuento_aplicado: 15, total: 75, creado_en: hace(18), cliente: { nombre: 'Sofía' }, items: [{ producto_id: 21, nombre: 'Taco al pastor', cantidad: 5, subtotal: 90 }] },
-];
 
 export const SUGERENCIAS_IA = [
   { id: 2, nombre: 'Tacos Los Cuates', motivo: 'Está abierto ahora y es una buena opción para esta hora de la noche.' },

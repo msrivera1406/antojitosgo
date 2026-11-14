@@ -4,6 +4,8 @@
 @tailwind utilities;
 
 @layer base {
+  :root { --alto-nav: 4.5rem; } /* lo usa ia.css (spec 03) para quedar sobre la navegación inferior */
+  @media (min-width: 768px) { :root { --alto-nav: 0px; } }
   html {
     font-size: 100%; /* respeta el tamaño de texto del usuario */
     -webkit-text-size-adjust: 100%;
@@ -43,4 +45,9 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Asistente de Int. 3: en móvil se oculta mientras el panel de un puesto ocupa la parte inferior. */
+@media (max-width: 767px) {
+  body[data-panel-abierto] #zona-ia { display: none; }
 }

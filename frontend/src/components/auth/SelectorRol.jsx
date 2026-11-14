@@ -2,7 +2,7 @@ import { Store, Utensils } from 'lucide-react';
 
 const OPCIONES = [
   { valor: 'cliente', titulo: 'Soy comensal', texto: 'Quiero descubrir y pedir', icono: Utensils },
-  { valor: 'locatario', titulo: 'Tengo un puesto', texto: 'Quiero recibir pedidos', icono: Store },
+  { valor: 'locatario', titulo: 'Tengo un puesto', texto: 'Quiero mostrar mi menú', icono: Store },
 ];
 
 export default function SelectorRol({ valor, onChange, error }) {

@@ -7,7 +7,7 @@ import Cargando from '../components/ui/Cargando.jsx';
 import Alerta from '../components/ui/Alerta.jsx';
 import EstadoVacio from '../components/ui/EstadoVacio.jsx';
 import Boton from '../components/ui/Boton.jsx';
-import TableroPedidos from '../components/locatario/TableroPedidos.jsx';
+import SeccionResenas from '../components/resenas/SeccionResenas.jsx';
 import EditorMenu from '../components/locatario/EditorMenu.jsx';
 import FormularioPuesto from '../components/locatario/FormularioPuesto.jsx';
 import RutaProtegida from '../components/auth/RutaProtegida.jsx';
@@ -17,13 +17,13 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useTitulo } from '../hooks/useTitulo.js';
 
 const PESTANAS = [
-  { id: 'pedidos', etiqueta: 'Pedidos' },
   { id: 'menu', etiqueta: 'Menú' },
+  { id: 'resenas', etiqueta: 'Reseñas' },
   { id: 'puesto', etiqueta: 'Mi puesto' },
 ];
 
 function PanelPuesto({ puesto, categorias, onActualizado }) {
-  const [pestana, setPestana] = useState('pedidos');
+  const [pestana, setPestana] = useState('menu');
   const detalle = useCarga(() => puestosApi.detalle(puesto.id), [puesto.id]);
   const [productos, setProductos] = useState([]);
 
@@ -35,7 +35,7 @@ function PanelPuesto({ puesto, categorias, onActualizado }) {
     <div className="space-y-5">
       <Pestanas opciones={PESTANAS} activa={pestana} onChange={setPestana} etiqueta="Secciones de tu puesto" />
       <div role="tabpanel" id={`panel-${pestana}`} aria-labelledby={`pestana-${pestana}`}>
-        {pestana === 'pedidos' && <TableroPedidos puestoId={puesto.id} />}
+        {pestana === 'resenas' && <SeccionResenas puestoId={puesto.id} esDueno soloLectura />}
         {pestana === 'menu' && (detalle.cargando ? <Cargando texto="Cargando tu menú" /> : <EditorMenu puestoId={puesto.id} productos={productos} onCambio={setProductos} />)}
         {pestana === 'puesto' && (
           <div className="rounded-panel bg-white p-5 shadow-tarjeta sm:p-6">
@@ -84,7 +84,7 @@ function ContenidoLocatario() {
 
   if (!puesto) {
     return (
-      <Pagina estrecha titulo="Registra tu puesto" subtitulo="Cuéntanos dónde te instalas para que la gente pueda encontrarte y pedirte para recoger.">
+      <Pagina estrecha titulo="Registra tu puesto" subtitulo="Cuéntanos dónde te instalas para que la gente pueda encontrarte y consultar tu menú.">
         <div className="rounded-panel bg-white p-5 shadow-tarjeta sm:p-6">
           <FormularioPuesto
             categorias={categorias.datos ?? []}
@@ -101,7 +101,7 @@ function ContenidoLocatario() {
   }
 
   return (
-    <Pagina titulo="Mi puesto" subtitulo="Administra tus pedidos, tu menú y tus datos.">
+    <Pagina titulo="Mi puesto" subtitulo="Administra tu menú, revisa tus reseñas y mantén tus datos al día.">
       {lista.length > 1 && (
         <div role="group" aria-label="Elige un puesto" className="flex flex-wrap gap-2">
           {lista.map((p) => (

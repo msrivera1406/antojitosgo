@@ -15,7 +15,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': { target: backend, changeOrigin: true },
-      '/static/uploads': { target: backend, changeOrigin: true },
+      // /static incluye las fotos subidas y el asistente de voz (gemini_live.js, ia.css).
+      '/static': { target: backend, changeOrigin: true },
     },
   },
 });
