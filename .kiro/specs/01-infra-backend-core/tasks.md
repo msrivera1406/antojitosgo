@@ -10,7 +10,7 @@ Marca cada tarea al terminarla. Las tareas de **Fase 0** desbloquean a los demá
   - [x] 1.3 Crear `.env.example` y `.gitignore` (`.env`, `__pycache__`, `static/uploads/*` salvo `.gitkeep`)
   - [x] 1.4 Crear `requirements.txt` y `requirements-dev.txt`
   - _Requisitos: R1_
-- [ ] 2. `database.sql`: el **esquema ya está** (con `cupones` y columnas nuevas). Falta añadir usuarios semilla (los puestos llegan en la tarea 8)
+- [x] 2. `database.sql`: el **esquema ya está** (con `cupones` y columnas nuevas). Falta añadir usuarios semilla (los puestos llegan en la tarea 8)
   - _Requisitos: R2.1, R2.5_
 - [ ] 3. Núcleo mínimo para que otros desarrollen
   - [x] 3.1 `config.py` y `db.py` (`db_cursor`)
@@ -48,10 +48,10 @@ Marca cada tarea al terminarla. Las tareas de **Fase 0** desbloquean a los demá
   - [ ] 7.6 Pruebas de escritura y permisos
   - _Requisitos: R5.4 a R5.10, R8.2_
 - [ ] 8. Datos semilla
-  - [ ] 8.1 `scripts/generar_hash.py` y hashes de los usuarios de prueba
-  - [ ] 8.2 8 a 10 puestos con productos en Roma, Condesa, Centro y Coyoacán, y los datos de demostración de cupones y pedidos entregados (R2.5)
+  - [x] 8.1 `scripts/generar_hash.py` y hashes de los usuarios de prueba
+  - [x] 8.2 8 a 10 puestos con productos en Roma, Condesa, Centro y Coyoacán, y los datos de demostración de cupones y pedidos entregados (R2.5)
   - [ ] 8.3 Verificar la carga en phpMyAdmin (`localhost:8080`) con `docker compose down -v && docker compose up --build`
-  - [ ] 8.4 Prueba que verifique conteos y cobertura de categorías contra `antojito_test`
+  - [x] 8.4 Prueba que verifique conteos y cobertura de categorías contra `antojito_test`
   - _Requisitos: R2_
 - [ ] 9. `tests/test_paginas.py`: cada vista responde 200 (las plantillas reales llegan de las otras specs; usar `base.html` provisional si hace falta)
   - _Requisitos: R3.4_
