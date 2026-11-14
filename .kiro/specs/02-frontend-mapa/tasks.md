@@ -68,3 +68,10 @@
 ## Dependencias con otras specs
 * **Recibe de Int. 1:** `GET /api/puestos`, `GET /api/puestos/categorias`, `POST /api/puestos/recomendar`, `auth/*`. Hasta entonces, usar datos de ejemplo con la misma forma del contrato compartido.
 * **Entrega a Int. 3 y 4:** `base.html`, `api.js`, `styles.css`, `window.AntojitoUbicacion` y el contenedor `#zona-ia`.
+
+## Diseño UX/UI (transversal)
+- [ ] D1. Evaluar la interfaz de esta spec contra `.kiro/steering/diseno-ux-ui.md`, listar problemas visuales y de usabilidad, y corregir solo lo necesario
+- [ ] D2. Usar únicamente los tokens, la escala tipográfica y los componentes del sistema de diseño (sin colores, fuentes ni espaciados sueltos)
+- [ ] D3. Cubrir los estados de carga, error, vacío, éxito y deshabilitado de cada pantalla
+- [ ] D4. Verificar accesibilidad: contraste AA, objetivos de 44 px, foco visible, teclado, lector de pantalla, texto ampliable y `prefers-reduced-motion`
+- [ ] D5. Probar en móvil (Chrome Android y Safari iOS), tableta y escritorio, y pasar la lista de la sección 12 del prompt de diseño

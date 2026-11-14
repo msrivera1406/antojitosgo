@@ -66,3 +66,10 @@ Hasta que Int. 1 entregue la Fase 0, se puede trabajar con funciones puras y pru
 * **Recibe de Int. 2:** `base.html`, `api.js`, `window.AntojitoUbicacion` y `#zona-ia`.
 * **Entrega:** `partials/boton_ia.html`, `gemini_live.js` y `ia.css`.
 * **Con Int. 4:** el enlace a `/puesto/<id>` de un puesto verificado (opcional).
+
+## Diseño UX/UI (transversal)
+- [ ] D1. Evaluar la interfaz de esta spec contra `.kiro/steering/diseno-ux-ui.md`, listar problemas visuales y de usabilidad, y corregir solo lo necesario
+- [ ] D2. Usar únicamente los tokens, la escala tipográfica y los componentes del sistema de diseño (sin colores, fuentes ni espaciados sueltos)
+- [ ] D3. Cubrir los estados de carga, error, vacío, éxito y deshabilitado de cada pantalla
+- [ ] D4. Verificar accesibilidad: contraste AA, objetivos de 44 px, foco visible, teclado, lector de pantalla, texto ampliable y `prefers-reduced-motion`
+- [ ] D5. Probar en móvil (Chrome Android y Safari iOS), tableta y escritorio, y pasar la lista de la sección 12 del prompt de diseño

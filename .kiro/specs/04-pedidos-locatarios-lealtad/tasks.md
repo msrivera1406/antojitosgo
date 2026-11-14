@@ -80,3 +80,10 @@ Hasta que Int. 1 entregue la Fase 0, se puede trabajar en la lógica pura del cl
 * **Recibe de Int. 1:** `db_cursor`, `utils/auth.py`, `utils/puntos.py`, `conftest.py`, blueprint `pedidos` vacío, semillas, `GET /api/puestos/<id>`, `/mios`, `POST /crear`, `PUT`, productos y `GET /usuarios/<id>/perfil`.
 * **Recibe de Int. 2:** `base.html`, `api.js`, `auth.js`, `styles.css` y el patrón de mapa con pin.
 * **Entrega:** `/puesto/<id>`, `/locatario`, `/perfil` y las rutas de pedidos.
+
+## Diseño UX/UI (transversal)
+- [ ] D1. Evaluar la interfaz de esta spec contra `.kiro/steering/diseno-ux-ui.md`, listar problemas visuales y de usabilidad, y corregir solo lo necesario
+- [ ] D2. Usar únicamente los tokens, la escala tipográfica y los componentes del sistema de diseño (sin colores, fuentes ni espaciados sueltos)
+- [ ] D3. Cubrir los estados de carga, error, vacío, éxito y deshabilitado de cada pantalla
+- [ ] D4. Verificar accesibilidad: contraste AA, objetivos de 44 px, foco visible, teclado, lector de pantalla, texto ampliable y `prefers-reduced-motion`
+- [ ] D5. Probar en móvil (Chrome Android y Safari iOS), tableta y escritorio, y pasar la lista de la sección 12 del prompt de diseño
