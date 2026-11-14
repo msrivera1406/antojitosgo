@@ -73,3 +73,43 @@ test('estadoDesdeError', () => {
   assert.equal(estadoDesdeError(3), 'timeout');
   assert.equal(estadoDesdeError(undefined), 'no_disponible');
 });
+
+import { debeRefrescar, formatearDistancia } from './geo.js';
+import { urlCercanos } from './api.js';
+import { iconoDeCategoria } from './categorias.js';
+
+test('debeRefrescar: sin posición no, sin consulta previa sí', () => {
+  assert.equal(debeRefrescar(null, null, 0), false);
+  assert.equal(debeRefrescar(null, { lat: 19.43, lng: -99.13 }, 0), true);
+});
+
+test('debeRefrescar: por distancia (50 m) o por tiempo (30 s)', () => {
+  const ultima = { pos: { lat: 19.4326, lng: -99.1332 }, ms: 1000 };
+  const cerca = { lat: 19.43262, lng: -99.1332 }; // ~2 m
+  const lejos = { lat: 19.4332, lng: -99.1332 }; // ~67 m
+  assert.equal(debeRefrescar(ultima, cerca, 2000), false);
+  assert.equal(debeRefrescar(ultima, lejos, 2000), true);
+  assert.equal(debeRefrescar(ultima, cerca, 31000), true);
+  assert.equal(debeRefrescar(ultima, cerca, 30999), false);
+});
+
+test('formatearDistancia', () => {
+  assert.equal(formatearDistancia(355), '355 m');
+  assert.equal(formatearDistancia(1240), '1.2 km');
+  assert.equal(formatearDistancia(999.6), '1000 m');
+  assert.equal(formatearDistancia(undefined), '');
+});
+
+test('urlCercanos: incluye solo los filtros presentes y codifica valores', () => {
+  assert.equal(
+    urlCercanos({ lat: 19.43, lng: -99.13 }),
+    '/api/puestos/cercanos?lat=19.43&lng=-99.13',
+  );
+  const url = urlCercanos({ lat: 1, lng: 2, radio: 800, categoria: 'tacos', estatus: 'verificado' });
+  assert.match(url, /radio=800&categoria=tacos&estatus=verificado$/);
+});
+
+test('iconoDeCategoria: conocido y desconocido', () => {
+  assert.equal(iconoDeCategoria('tacos'), '🌮');
+  assert.equal(iconoDeCategoria('sushi'), '🍴');
+});

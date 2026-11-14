@@ -61,3 +61,22 @@ export function estadoDesdeError(codigo) {
   if (codigo === 3) return 'timeout'; // TIMEOUT
   return 'no_disponible'; // POSITION_UNAVAILABLE u otro
 }
+
+/**
+ * ¿Hay que volver a consultar los puestos? Sí si no hay consulta previa, si el usuario se movió
+ * `umbralM` metros o más desde la última, o si pasó `intervaloMs` desde la última.
+ * `ultima` = { pos: {lat, lng}, ms } de la última consulta, o null.
+ */
+export function debeRefrescar(ultima, pos, ahoraMs, { umbralM = 50, intervaloMs = 30000 } = {}) {
+  if (!pos) return false;
+  if (!ultima) return true;
+  if (distanciaMetros(ultima.pos, pos) >= umbralM) return true;
+  return ahoraMs - ultima.ms >= intervaloMs;
+}
+
+/** 355 -> "355 m", 1240 -> "1.2 km". */
+export function formatearDistancia(metros) {
+  if (!Number.isFinite(metros)) return '';
+  if (metros < 1000) return `${Math.round(metros)} m`;
+  return `${(metros / 1000).toFixed(1)} km`;
+}

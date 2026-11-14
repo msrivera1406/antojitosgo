@@ -23,3 +23,8 @@ export const VISTA = {
 
 // Lecturas con peor precisión que esto (en metros) se descartan si ya hay una mejor.
 export const PRECISION_MAX_METROS = 100;
+
+// Búsqueda de puestos. Sin ubicación se muestran los del centro de la CDMX con un radio mayor.
+export const RADIO_CERCANOS_M = 1500;
+export const RADIO_SIN_UBICACION_M = 5000;
+export const REFRESCO = { umbralM: 50, intervaloMs: 30000 };

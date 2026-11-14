@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { AttributionControl, Map as MapaGL, Marker, NavigationControl } from 'maplibre-gl';
+import {
+  AttributionControl,
+  Map as MapaGL,
+  Marker,
+  NavigationControl,
+  setWorkerUrl,
+} from 'maplibre-gl';
+// MapLibre 6 carga su worker desde un archivo aparte. Vite lo emite como asset y aquí se le indica dónde.
+import urlWorker from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import {
   AREA_METROPOLITANA,
   CENTRO_CDMX,
@@ -7,7 +15,10 @@ import {
   TILE_URL,
   VISTA,
 } from '../lib/config.js';
+import { iconoDeCategoria } from '../lib/categorias.js';
 import { circuloGeoJSON } from '../lib/geo.js';
+
+setWorkerUrl(urlWorker);
 
 const ESTILO = {
   version: 8,
@@ -39,15 +50,41 @@ function crearElementoUsuario() {
   return raiz;
 }
 
+// Sin `transition`: MapLibre mueve cada marcador con `transform`, y animarlo lo retrasa respecto al mapa.
+const CLASE_BASE_PUESTO =
+  'flex h-10 w-10 items-center justify-center rounded-full border-4 bg-white text-xl shadow-lg';
+
+function crearElementoPuesto(puesto) {
+  const boton = document.createElement('button');
+  boton.type = 'button';
+  const borde = puesto.estatus === 'verificado' ? 'border-green-600' : 'border-orange-500';
+  boton.className = `${CLASE_BASE_PUESTO} ${borde}`;
+  boton.textContent = iconoDeCategoria(puesto.categoria);
+  boton.setAttribute('aria-label', puesto.nombre);
+  return boton;
+}
+
 /**
  * Mapa MapLibre GL con vista inclinada tipo primera persona.
  * `siguiendo` = la cámara sigue al usuario. Se apaga cuando el usuario arrastra el mapa.
  */
-export default function Mapa({ posicion, precision, rumbo, siguiendo, onSeguirChange }) {
+export default function Mapa({
+  posicion,
+  precision,
+  rumbo,
+  siguiendo,
+  onSeguirChange,
+  puestos,
+  seleccionadoId,
+  onSeleccionar,
+}) {
   const contenedorRef = useRef(null);
   const mapaRef = useRef(null);
   const marcadorRef = useRef(null);
   const primerAjusteRef = useRef(true);
+  const marcadoresPuestosRef = useRef(new Map()); // id -> { marcador, clave }
+  const alSeleccionarRef = useRef(onSeleccionar);
+  alSeleccionarRef.current = onSeleccionar;
   const [listo, setListo] = useState(false);
   const [inclinado, setInclinado] = useState(true);
 
@@ -85,11 +122,14 @@ export default function Mapa({ posicion, precision, rumbo, siguiendo, onSeguirCh
       if (e.originalEvent) onSeguirChange(false);
     });
     mapa.on('pitchend', () => setInclinado(mapa.getPitch() > 10));
+    // Un toque en el mapa vacío deselecciona. Los marcadores detienen la propagación del clic.
+    mapa.on('click', () => alSeleccionarRef.current(null));
     mapaRef.current = mapa;
     return () => {
       mapa.remove();
       mapaRef.current = null;
       marcadorRef.current = null;
+      marcadoresPuestosRef.current.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -121,6 +161,48 @@ export default function Mapa({ posicion, precision, rumbo, siguiendo, onSeguirCh
       .getSource(FUENTE_PRECISION)
       ?.setData(circuloGeoJSON(posicion, Math.max(precision ?? 0, 1)));
   }, [posicion, precision, rumbo, listo]);
+
+  // Marcadores de puestos: se agregan, quitan y reemplazan según cambie la lista.
+  useEffect(() => {
+    const mapa = mapaRef.current;
+    if (!mapa || !listo) return;
+    const actuales = marcadoresPuestosRef.current;
+    const ids = new Set(puestos.map((p) => p.id));
+    for (const [id, { marcador }] of actuales) {
+      if (!ids.has(id)) {
+        marcador.remove();
+        actuales.delete(id);
+      }
+    }
+    for (const puesto of puestos) {
+      const clave = `${puesto.estatus}|${puesto.categoria}|${puesto.nombre}`;
+      const previo = actuales.get(puesto.id);
+      if (previo && previo.clave === clave) {
+        previo.marcador.setLngLat([puesto.longitud, puesto.latitud]);
+        continue;
+      }
+      previo?.marcador.remove();
+      const elemento = crearElementoPuesto(puesto);
+      elemento.addEventListener('click', (evento) => {
+        evento.stopPropagation();
+        alSeleccionarRef.current(puesto.id);
+      });
+      const marcador = new Marker({ element: elemento })
+        .setLngLat([puesto.longitud, puesto.latitud])
+        .addTo(mapa);
+      actuales.set(puesto.id, { marcador, clave });
+    }
+  }, [puestos, listo]);
+
+  // Resalta el marcador seleccionado.
+  useEffect(() => {
+    for (const [id, { marcador }] of marcadoresPuestosRef.current) {
+      const activo = id === seleccionadoId;
+      const el = marcador.getElement();
+      el.classList.toggle('scale-125', activo);
+      el.style.zIndex = activo ? '10' : '';
+    }
+  }, [seleccionadoId, puestos, listo]);
 
   // Cámara: sigue al usuario mientras `siguiendo` esté activo.
   useEffect(() => {

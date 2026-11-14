@@ -31,7 +31,8 @@ CREATE TABLE puestos (
     foto_url VARCHAR(255),
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (propietario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
-    FOREIGN KEY (recomendado_por) REFERENCES usuarios(id) ON DELETE SET NULL
+    FOREIGN KEY (recomendado_por) REFERENCES usuarios(id) ON DELETE SET NULL,
+    INDEX idx_puestos_geo (latitud, longitud)
 );
 
 CREATE TABLE productos (
