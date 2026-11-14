@@ -139,7 +139,17 @@ INSERT INTO productos (id, puesto_id, nombre, precio, disponible) VALUES
 (22, 7, 'Nieve de limón', 35.00, TRUE),
 (23, 7, 'Agua fresca de jamaica', 25.00, TRUE),
 (24, 8, 'Elote preparado', 35.00, TRUE),
-(25, 8, 'Esquite preparado', 30.00, TRUE);
+(25, 8, 'Esquite preparado', 30.00, TRUE),
+-- Antojitos (botanas preparadas) en los puestos de esquites y elotes.
+(26, 3, 'Dorilocos', 45.00, TRUE),
+(27, 3, 'Tostilocos', 45.00, TRUE),
+(28, 3, 'Chicharrón preparado', 35.00, TRUE),
+(29, 3, 'Esquite con chicharrón', 45.00, TRUE),
+(30, 8, 'Dorilocos', 40.00, TRUE),
+(31, 8, 'Tostilocos', 40.00, TRUE),
+(32, 8, 'Chicharrón preparado', 30.00, TRUE),
+(33, 8, 'Churrumais preparados', 30.00, TRUE),
+(34, 8, 'Papas locas', 35.00, TRUE);
 
 -- Cupón vigente de $15 para Ana (hito de recomendaciones: 5 contadas = reco:1). Vale en cualquier puesto verificado.
 INSERT INTO cupones (id, usuario_id, puesto_id, codigo, monto, origen, clave_hito, usado, vence_en) VALUES
