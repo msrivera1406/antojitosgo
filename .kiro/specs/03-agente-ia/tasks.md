@@ -87,6 +87,15 @@ Rama de trabajo: `feat/int3-ia`. Pruebas del backend: `docker compose run --rm -
 - [ ] 14. Punto de control: `pytest tests/test_ia.py` y `node --test static/js/tests/gemini_live.test.js` pasan, y `git grep` no encuentra la clave de Gemini en ningún archivo versionado
   - _Requisitos: R3.7, R9_
 
+## Ética y transparencia (R9)
+
+- [x] E1. Prompt con transparencia, neutralidad, límites y no manipulación
+- [x] E2. Etiqueta visible de IA, aviso de consentimiento antes de la primera voz y alternativa de escribir
+- [x] E3. Ubicación redondeada (3 decimales al servidor y a Gemini, 2 decimales al proveedor del clima)
+- [x] E4. Lista blanca de campos de puestos y pruebas de sesgo, de datos personales y de orden por distancia
+- [x] E5. Registro de decisiones en `docs/decisiones-ia.md`
+- [ ] E6. Pendiente de otros: aviso de privacidad y términos publicados (equipo), registros de acceso sin coordenadas en producción (Int. 1), vista de lista accesible del mapa (Int. 2)
+
 ## Dependencias con otras specs
 
 * **Recibe de Int. 1:** `db_cursor`, `conftest.py` (mientras tanto `tests/test_ia.py` usa su propia BD de pruebas), blueprint `ia` vacío y datos semilla. Una línea en `requirements.txt` (`tzdata`) y las variables `GEMINI_*` en `config.py` y `.env.example`, ya agregadas.

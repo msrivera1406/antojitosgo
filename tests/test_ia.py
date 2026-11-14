@@ -254,6 +254,51 @@ def test_instruccion_el_json_de_puestos_no_incluye_descripcion_ni_texto_libre_la
     assert "Texto libre largo" not in instruccion(puestos=[con_descripcion])
 
 
+# ======================= ÉTICA, PRIVACIDAD Y SESGO =======================
+
+def test_instruccion_declara_ia_neutralidad_limites_y_no_manipulacion():
+    texto = instruccion()
+    for fragmento in ["inteligencia artificial", "No eres una persona", "No asumas el género", "No hagas estereotipos",
+                      "trata igual a todos los puestos", "con o sin fotos o reseñas", "No presiones para comprar",
+                      "No des consejo médico", "alergias", "recházalo con amabilidad"]:
+        assert fragmento in texto, fragmento
+
+
+def test_instruccion_el_criterio_de_recomendacion_es_solo_objetivo():
+    texto = instruccion()
+    assert "solo según lo que pide la persona, la distancia, si el puesto está abierto, su categoría, el clima y la hora" in texto
+
+
+def test_el_prompt_solo_incluye_campos_objetivos_de_cada_puesto():
+    """Lista blanca: nada de descripción, dueño, fotos, fechas, reseñas ni datos de quien recomendó."""
+    completo = dict(PUESTO, descripcion="texto libre", propietario_id=2, recomendado_por=5, foto_url="/x.jpg",
+                    creado_en="2025-01-01", resenas=[5, 5, 5], zona="Roma Norte")
+    datos = ctx._puesto_para_prompt(completo, a_las(12))
+    assert set(datos) == {"id", "nombre", "categoria", "estatus", "horario", "abierto_ahora", "distancia_m", "productos"}
+
+
+def test_el_prompt_no_cambia_si_solo_cambian_campos_no_objetivos():
+    base = [dict(PUESTO), dict(RECOMENDADO)]
+    otros = [dict(p, descripcion="otra", foto_url="/otra.jpg", propietario_id=99, recomendado_por=7, zona="otra") for p in base]
+    assert instruccion(puestos=base) == instruccion(puestos=otros)
+
+
+def test_el_orden_de_los_puestos_lo_decide_solo_la_distancia_no_el_estatus_ni_el_menu():
+    """La instrucción conserva el orden recibido (que viene ordenado por distancia desde SQL)."""
+    cercano_sin_menu = dict(RECOMENDADO, nombre="Zeta", distancia_m=100)
+    lejano_con_menu = dict(PUESTO, nombre="Alfa", distancia_m=900)
+    texto = instruccion(puestos=[cercano_sin_menu, lejano_con_menu])
+    assert texto.index("Zeta") < texto.index("Alfa")
+
+
+@responses.activate
+def test_clima_solo_envia_una_ubicacion_aproximada():
+    responses.add(responses.GET, URL_CLIMA, json=respuesta_clima())
+    servicio_clima.obtener_clima(19.43267891, -99.13321234)
+    consulta = responses.calls[0].request.params
+    assert consulta["latitude"] == "19.43" and consulta["longitude"] == "-99.13"
+
+
 # ======================= HORARIOS =======================
 
 @pytest.mark.parametrize("horario,hora,minuto,esperado", [
@@ -825,6 +870,17 @@ def test_ruta_chat_feliz(ruta_chat, cliente_chat):
     config_enviada = cliente.models.llamadas[0]["config"]
     assert "chat de texto" in config_enviada["system_instruction"]
     assert "Tengo frío" not in config_enviada["system_instruction"]
+
+
+def test_ruta_chat_no_reenvia_al_modelo_datos_personales_extra(ruta_chat, cliente_chat):
+    cliente = cliente_chat({"chat-1": ["ok"]})
+    r = ruta_chat.post("/api/ia/chat", json={
+        "mensaje": "Algo calientito", "lat": 19.43, "lng": -99.13,
+        "nombre": "Ana Pérez", "email": "ana@example.com", "usuario_id": 7, "pedidos": [{"id": 1}]})
+    assert r.status_code == 200
+    enviado = json.dumps(cliente.models.llamadas[0], ensure_ascii=False, default=str)
+    for dato in ["Ana Pérez", "ana@example.com", "usuario_id", "pedidos"]:
+        assert dato not in enviado
 
 
 def test_ruta_chat_con_historial_y_sin_coordenadas(ruta_chat, cliente_chat):

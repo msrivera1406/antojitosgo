@@ -364,3 +364,30 @@ test('parsearUbicacionManual', () => {
     assert.equal(U.parsearUbicacionManual(malo), null, String(malo));
   }
 });
+
+test('redondearUbicacion: 3 decimales por defecto y nulo si no hay ubicación', () => {
+  assert.deepEqual(U.redondearUbicacion({ lat: 19.41267891, lng: -99.16912345 }), { lat: 19.413, lng: -99.169 });
+  assert.deepEqual(U.redondearUbicacion({ lat: 19.41267891, lng: -99.16912345 }, 2), { lat: 19.41, lng: -99.17 });
+  assert.equal(U.redondearUbicacion(null), null);
+});
+
+test('consentimiento de voz: se guarda y se recuerda', () => {
+  const datos = {};
+  const almacen = { getItem: (k) => (k in datos ? datos[k] : null), setItem: (k, v) => { datos[k] = v; } };
+  assert.equal(U.consentimientoVoz(almacen), false);
+  assert.equal(U.guardarConsentimientoVoz(almacen), true);
+  assert.equal(U.consentimientoVoz(almacen), true);
+});
+
+test('consentimiento de voz: si el almacenamiento falla (modo privado) se pide cada vez, sin romperse', () => {
+  const roto = { getItem() { throw new Error('bloqueado'); }, setItem() { throw new Error('bloqueado'); } };
+  assert.equal(U.consentimientoVoz(roto), false);
+  assert.equal(U.guardarConsentimientoVoz(roto), false);
+  assert.equal(U.consentimientoVoz(null), false);
+  assert.equal(U.consentimientoVoz({ getItem: () => 'no' }), false);
+});
+
+test('transparencia: el botón y el estado dicen que es una IA', () => {
+  assert.match(U.ETIQUETAS.inactivo, /inteligencia artificial/);
+  assert.match(U.TEXTOS_ESTADO.hablando, /IA/);
+});

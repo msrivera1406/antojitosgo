@@ -47,7 +47,9 @@ def _numero(valor):
 
 def obtener_clima(lat, lng, *, ahora=time.monotonic):
     """{'temperatura_c', 'lluvia_mm', 'llueve', 'descripcion'} o None si no hay datos."""
-    clave = (round(lat, 2), round(lng, 2))
+    # Privacidad: al proveedor del clima solo se le envía una ubicación aproximada (2 decimales, ~1 km).
+    lat, lng = round(lat, 2), round(lng, 2)
+    clave = (lat, lng)
     en_cache = _cache.get(clave)
     if en_cache and ahora() - en_cache[0] < TTL_S:
         return en_cache[1]

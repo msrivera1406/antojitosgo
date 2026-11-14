@@ -233,7 +233,7 @@
   }
 
   const ETIQUETAS = {
-    inactivo: 'Hablar con el asistente',
+    inactivo: 'Hablar con el asistente de inteligencia artificial',
     conectando: 'Conectando con el asistente. Toca para cancelar',
     escuchando: 'Te escucho. Toca para terminar',
     hablando: 'El asistente está hablando. Toca para terminar',
@@ -245,7 +245,7 @@
     inactivo: '',
     conectando: 'Conectando…',
     escuchando: 'Te escucho…',
-    hablando: 'Antojito está hablando…',
+    hablando: 'Antojito (IA) está hablando…',
     reconectando: 'Reconectando…',
     error: '',
   };
@@ -299,6 +299,35 @@
     return { lat: lat, lng: lng };
   }
 
+  /** Redondea la ubicación (3 decimales, ~110 m) antes de enviarla: el servidor y los terceros no necesitan más precisión. */
+  function redondearUbicacion(ubicacion, decimales) {
+    if (!ubicacion) return null;
+    const d = decimales == null ? 3 : decimales;
+    return { lat: Number(ubicacion.lat.toFixed(d)), lng: Number(ubicacion.lng.toFixed(d)) };
+  }
+
+  // ---------------------------------------------------------------- consentimiento de voz
+
+  const CLAVE_CONSENTIMIENTO = 'antojito_ia_voz_v1';
+
+  /** ¿La persona ya aceptó el aviso de voz? `almacen` es localStorage (o algo con getItem/setItem). Tolera que falle. */
+  function consentimientoVoz(almacen) {
+    try {
+      return !!almacen && almacen.getItem(CLAVE_CONSENTIMIENTO) === 'si';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function guardarConsentimientoVoz(almacen) {
+    try {
+      almacen.setItem(CLAVE_CONSENTIMIENTO, 'si');
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // ---------------------------------------------------------------- chat de texto
 
   const MAX_MENSAJE = 500;
@@ -334,6 +363,7 @@
     clasificarError, calcularEspera, orquestarConexion,
     siguienteEstado, mensajeDeFallo, mensajeDeMicrofono, evaluarSoporte,
     validarMensajeChat, agregarAlHistorial, mensajeDeErrorChat, parsearUbicacionManual,
+    redondearUbicacion, consentimientoVoz, guardarConsentimientoVoz, CLAVE_CONSENTIMIENTO,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

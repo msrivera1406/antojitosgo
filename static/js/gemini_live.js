@@ -112,7 +112,12 @@ function limpiarTranscripcion() {
 
 // ------------------------------------------------------------------ ubicación
 
-function obtenerUbicacion() {
+/** Ubicación aproximada (3 decimales): el servidor y los terceros no necesitan la posición exacta. */
+async function obtenerUbicacion() {
+  return U.redondearUbicacion(await ubicacionExacta());
+}
+
+function ubicacionExacta() {
   // Para pruebas: ?ia_ubicacion=19.41,-99.17 en la URL fuerza esa ubicación (útil en un celular fuera de la CDMX).
   const manual = U.parsearUbicacionManual(new URLSearchParams(globalThis.location.search).get('ia_ubicacion'));
   if (manual) return Promise.resolve(manual);
@@ -336,8 +341,25 @@ function soporte() {
   });
 }
 
+function almacenLocal() {
+  try { return globalThis.localStorage; } catch (_) { return null; }
+}
+
+function mostrarConsentimiento() {
+  $('ia-consentimiento').hidden = false;
+  $('ia-consent-ok').focus();
+}
+
+function ocultarConsentimiento() {
+  $('ia-consentimiento').hidden = true;
+}
+
 async function alternarVoz() {
-  if (app.estado === 'inactivo' || app.estado === 'error') return iniciarVoz();
+  if (app.estado === 'inactivo' || app.estado === 'error') {
+    // Antes de la primera sesión se explica qué se envía y a quién; nada se activa sin una acción clara.
+    if (soporte().ok && !U.consentimientoVoz(almacenLocal())) { mostrarConsentimiento(); return; }
+    return iniciarVoz();
+  }
   return detener();
 }
 
@@ -510,7 +532,7 @@ function abrirChat(enfocar = true) {
   chat.abierto = true;
   $('btn-chat').setAttribute('aria-expanded', 'true');
   if (!$('chat-mensajes').children.length) {
-    agregarBurbuja('ia-msg-asistente', '¡Hola! Soy Antojito. Cuéntame qué se te antoja y te recomiendo un puesto cerca de ti.');
+    agregarBurbuja('ia-msg-asistente', '¡Hola! Soy Antojito, un asistente de inteligencia artificial. Cuéntame qué se te antoja y te sugiero un puesto cerca de ti.');
   }
   if (enfocar) $('chat-entrada').focus();
 }
@@ -592,12 +614,22 @@ function iniciar() {
 
   $('btn-ia').addEventListener('click', alternarVoz);
   $('btn-chat').addEventListener('click', () => (chat.abierto ? cerrarChat() : abrirChat()));
+  $('ia-consent-ok').addEventListener('click', () => {
+    U.guardarConsentimientoVoz(almacenLocal());
+    ocultarConsentimiento();
+    iniciarVoz(); // el toque en "continuar" es el gesto que exigen el audio y el micrófono
+  });
+  $('ia-consent-chat').addEventListener('click', () => { ocultarConsentimiento(); abrirChat(); });
   $('chat-cerrar').addEventListener('click', cerrarChat);
   $('chat-form').addEventListener('submit', (e) => {
     e.preventDefault();
     enviarChat($('chat-entrada').value);
   });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && chat.abierto) cerrarChat(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!$('ia-consentimiento').hidden) ocultarConsentimiento();
+    else if (chat.abierto) cerrarChat();
+  });
 
   // La voz no se deja encendida en segundo plano ni al salir de la página.
   document.addEventListener('visibilitychange', () => {

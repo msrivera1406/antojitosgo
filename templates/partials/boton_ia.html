@@ -11,6 +11,8 @@
     <p id="ia-transcripcion" class="ia-transcripcion"></p>
   </div>
 
+  <p class="ia-etiqueta">Asistente de IA</p>
+
   <div class="ia-botones">
     <button id="btn-chat" class="ia-btn ia-btn-chat" type="button" aria-label="Escribirle al asistente" aria-expanded="false" aria-controls="panel-chat">
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>
@@ -23,9 +25,18 @@
   <p id="ia-estado" class="ia-estado" aria-live="polite"></p>
 </div>
 
+<section id="ia-consentimiento" class="ia-consentimiento" role="dialog" aria-labelledby="ia-consent-titulo" aria-describedby="ia-consent-texto" hidden>
+  <h2 id="ia-consent-titulo">Antes de hablar</h2>
+  <p id="ia-consent-texto">Antojito es un asistente de inteligencia artificial, no una persona. Para conversar, tu voz y tu ubicación aproximada se envían a Google (Gemini) para generar la respuesta. Antojito no guarda tu audio. El micrófono solo está activo mientras el botón está en verde o azul.</p>
+  <div class="ia-consent-botones">
+    <button id="ia-consent-ok" type="button">Entiendo, continuar</button>
+    <button id="ia-consent-chat" type="button" class="ia-secundario">Prefiero escribir</button>
+  </div>
+</section>
+
 <section id="panel-chat" class="ia-chat" role="dialog" aria-label="Chat con el asistente" hidden>
   <header class="ia-chat-cabecera">
-    <h2>Pregúntale a Antojito</h2>
+    <h2>Antojito <span class="ia-chip">asistente de IA</span></h2>
     <button id="chat-cerrar" class="ia-chat-cerrar" type="button" aria-label="Cerrar el chat">&times;</button>
   </header>
   <div id="chat-mensajes" class="ia-chat-mensajes" role="log" aria-live="polite" aria-relevant="additions"></div>
@@ -34,6 +45,7 @@
     <input id="chat-entrada" type="text" maxlength="500" placeholder="¿Qué se te antoja?" enterkeyhint="send">
     <button id="chat-enviar" type="submit">Enviar</button>
   </form>
+  <p class="ia-chat-nota">Asistente de inteligencia artificial. Tus mensajes y tu ubicación aproximada se procesan con Gemini (Google) y Antojito no los guarda. No da consejo médico ni sobre alergias.</p>
 </section>
 
 <script type="module" src="{{ url_for('static', filename='js/gemini_live.js') }}"></script>

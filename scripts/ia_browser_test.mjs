@@ -4,6 +4,7 @@
 //   A. chat de texto: abrir, enviar y recibir respuesta
 //   B. voz: conexión, estado "escuchando", respuesta hablada (estado "hablando" y vuelta a "escuchando")
 //   C. caída de la sesión: reconexión automática y aviso "Se reinició la conversación"
+//   (antes de la primera voz: aviso de consentimiento y alternativa de escribir)
 //   D. tocar de nuevo: termina la sesión y suelta el micrófono
 //   E. servidor sin modelos de voz (503 simulado): mensaje de error y apertura del chat
 //
@@ -94,6 +95,8 @@ console.log('\nA) Chat de texto');
 await cargar();
 comprobar(await ev("typeof window.AntojitoIA === 'object' && !!document.getElementById('btn-ia')"), 'el módulo cargó y el botón existe');
 comprobar(await ev("document.getElementById('panel-chat').hidden === true"), 'el chat empieza cerrado');
+comprobar(await ev("document.querySelector('.ia-etiqueta').textContent.includes('IA')"), 'hay una etiqueta visible de "Asistente de IA"');
+comprobar(await ev("document.getElementById('btn-ia').getAttribute('aria-label').includes('inteligencia artificial')"), 'el botón de voz dice en su etiqueta que es una IA');
 await clic('btn-chat');
 comprobar(await ev("document.getElementById('panel-chat').hidden === false"), 'el botón abre el chat');
 comprobar(await ev("document.getElementById('btn-chat').getAttribute('aria-expanded')") === 'true', 'aria-expanded = true');
@@ -110,6 +113,16 @@ comprobar(await ev("document.getElementById('panel-chat').hidden === true"), 'Es
 console.log('\nB) Voz');
 await cargar();
 await clic('btn-ia');
+comprobar(await ev("document.getElementById('ia-consentimiento').hidden === false"), 'la primera vez muestra el aviso (IA, Google, no se guarda el audio)');
+comprobar(await ev("document.getElementById('ia-consent-texto').textContent.includes('Google') && document.getElementById('ia-consent-texto').textContent.includes('no guarda')"), 'el aviso menciona a Google y que no se guarda el audio');
+comprobar(await estado() === 'inactivo', 'el micrófono no se activa antes de aceptar');
+await clic('ia-consent-chat');
+comprobar(await ev("document.getElementById('panel-chat').hidden === false && document.getElementById('ia-consentimiento').hidden === true"), '"Prefiero escribir" abre el chat');
+comprobar(await estado() === 'inactivo', '...sin activar la voz');
+await ev("window.AntojitoIA.cerrarChat()");
+await clic('btn-ia');
+comprobar(await ev("document.getElementById('ia-consentimiento').hidden === false"), 'sin haber aceptado, el aviso vuelve a aparecer');
+await clic('ia-consent-ok');
 comprobar(await esperarPagina("document.getElementById('btn-ia').dataset.estado === 'escuchando'", 25000, 'estado escuchando'), 'conectó y pasó a "escuchando"');
 const modelo = await ev("document.getElementById('btn-ia').dataset.modelo");
 comprobar(!!modelo, `data-modelo = ${modelo}`);

@@ -103,3 +103,16 @@ Esta spec entrega un asistente de voz que recomienda 1 o 2 puestos del mapa seg�
 11. EL usuario DEBERÁ poder cancelar durante la reconexión tocando el botón, y se DEBERÁN limpiar los temporizadores.
 12. EL SISTEMA NO DEBERÁ entrar nunca en un bucle infinito de reintentos.
 13. EL modelo en uso DEBERÁ exponerse en `data-modelo` del botón para depuración y registrarse con `console.info`.
+
+### R9. Ética, privacidad y transparencia
+(Complementa `.kiro/steering/etica-legal-sin-sesgos.md`. Registro de decisiones en `docs/decisiones-ia.md`.)
+
+1. EL SISTEMA DEBERÁ indicar de forma visible que es una IA: etiqueta "Asistente de IA", etiqueta accesible del botón y nota en el chat.
+2. ANTES de la primera sesión de voz, EL SISTEMA DEBERÁ mostrar un aviso que diga que es una IA, que la voz y la ubicación aproximada se envían a Google (Gemini), que Antojito no guarda el audio y cuándo está activo el micrófono, y ofrecer "Prefiero escribir". NO DEBERÁ pedir el micrófono hasta que la persona acepte.
+3. EL SISTEMA DEBERÁ redondear la ubicación a 3 decimales antes de enviarla al servidor y a Gemini, y a 2 decimales antes de enviarla al proveedor del clima.
+4. AL modelo SOLO se le DEBERÁN enviar campos objetivos de cada puesto (nombre, categoría, estatus, horario, si está abierto, distancia y productos disponibles con precio), nunca datos personales de usuarios.
+5. EL prompt DEBERÁ exigir neutralidad y trato igual a todos los puestos, lenguaje que no asuma género, no presionar para comprar, no dar consejo médico, nutricional, legal ni financiero, no afirmar que un platillo es seguro para alergias o dietas, y rechazar con amabilidad lo ofensivo o fuera de alcance.
+6. EL orden de los puestos DEBERÁ depender solo de la distancia.
+7. EL SISTEMA NO DEBERÁ guardar audio ni mensajes, y DEBERÁ ignorar los campos de la petición del chat que no sean `mensaje`, `historial`, `lat` y `lng`.
+8. EXISTIRÁN pruebas automáticas para los puntos 3 a 7.
+
