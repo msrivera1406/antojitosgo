@@ -13,6 +13,8 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    // Permite abrir el servidor de desarrollo por un túnel de Cloudflare (cloudflared tunnel --url ...).
+    allowedHosts: ['.trycloudflare.com'],
     proxy: {
       '/api': { target: backend, changeOrigin: true },
       // /static incluye las fotos subidas y el asistente de voz (gemini_live.js, ia.css).
