@@ -45,4 +45,12 @@ docker compose exec web python scripts/generar_hash.py "NuevaContraseña123"
 docker compose exec web pytest tests/test_semilla.py
 ```
 
-La prueba crea `antojito_test` desde `database.sql` y no toca `antojito_db`.
+La prueba crea una BD temporal (`antojito_semilla_test`) desde `database.sql` y no toca `antojito_db`.
+
+### Pruebas de cupones y lealtad
+
+```bash
+docker compose exec web pytest tests/test_cupones.py
+```
+
+Usan la BD `antojito_test`, que `tests/conftest.py` crea desde `database.sql` y vacía entre pruebas. No tocan `antojito_db`.

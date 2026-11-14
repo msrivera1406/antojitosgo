@@ -16,14 +16,14 @@ Marca cada tarea al terminarla. Las tareas de **Fase 0** desbloquean a los demá
   - [x] 3.1 `config.py` y `db.py` (`db_cursor`)
   - [x] 3.2 `utils/respuestas.py` (serialización y errores JSON)
   - [x] 3.3 `utils/auth.py` (decoradores)
-  - [ ] 3.4 `utils/puntos.py` (**hecho**) y `utils/cupones.py` (solo firmas: falta implementar la lógica del diseño; la spec 04 depende de esto)
+  - [x] 3.4 `utils/puntos.py` y `utils/cupones.py` (lógica completa, probada en `tests/test_cupones.py`)
   - [x] 3.5 `app.py` con los cuatro blueprints (los de pedidos e ia vacíos) y rutas de vistas que sirven plantillas
   - [ ] 3.6 Avisar al equipo: "rama base lista"
   - _Requisitos: R3, R6_
 - [ ] 4. Pruebas de la base
-  - [ ] 4.1 `tests/conftest.py` (hay una versión mínima sin BD; falta `antojito_test`) con BD `antojito_test`, fixtures `client`, `crear_usuario`, `login`
+  - [ ] 4.1 `tests/conftest.py` (hay una versión mínima sin BD; falta `antojito_test`) con BD `antojito_test`, fixtures `client`, `crear_usuario`, `login` (**parcial**: ya crea `antojito_test`, `cursor`, `crear_usuario` y `crear_puesto`; falta `login` y apuntar `app` a la BD de pruebas)
   - [x] 4.2 Pruebas de `utils/puntos.py` (bordes de insignias, `puntos_por_compra`)
-  - [ ] 4.3 `tests/test_cupones.py` (hitos de recomendación y consumo, límite diario, idempotencia, validación y uso doble)
+  - [x] 4.3 `tests/test_cupones.py` (hitos de recomendación y consumo, límite diario, idempotencia, validación y uso doble)
   - _Requisitos: R6, R8.1_
 
 ## Fase 1: APIs

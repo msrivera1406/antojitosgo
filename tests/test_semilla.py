@@ -1,6 +1,6 @@
-"""Verifica los datos semilla de database.sql contra la BD antojito_test (spec 01, tarea 8.4).
+"""Verifica los datos semilla de database.sql contra una BD temporal (spec 01, tarea 8.4).
 
-Crea antojito_test desde database.sql (cambiando el nombre de la BD). No toca antojito_db.
+Crea antojito_semilla_test desde database.sql (cambiando el nombre de la BD). No toca antojito_db ni antojito_test.
 Si no hay MySQL disponible, las pruebas se omiten.
 """
 import os
@@ -12,7 +12,7 @@ from werkzeug.security import check_password_hash
 
 import config
 
-BD_TEST = "antojito_test"
+BD_TEST = "antojito_semilla_test"  # aparte de antojito_test, que usan las demás pruebas
 RUTA_SQL = os.path.join(config.BASE_DIR, "database.sql")
 
 
