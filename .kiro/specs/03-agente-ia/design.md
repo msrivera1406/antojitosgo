@@ -228,3 +228,6 @@ Planificador de reintentos (`clasificarError` con cada tipo de fallo, `calcularE
 * **API de Live en evolución:** aislar los nombres de mensajes en `construirMensajeInicial` y en un único `manejarMensajeServidor`.
 * **Audio en iOS Safari:** el `AudioContext` debe crearse o reanudarse dentro del evento de toque.
 * **Costos y abuso:** límite por IP, token de un solo uso y cierre a los 5 minutos.
+
+## Lineamientos de diseño UX/UI
+Esta spec sigue el prompt maestro de diseño en `.kiro/steering/diseno-ux-ui.md` y los principios de `.kiro/steering/etica-legal-sin-sesgos.md` (accesibilidad, privacidad y no sesgo). Aplican sobre todo: D (asistente de voz) y las secciones 7 a 9 y 11, usando los tokens de `styles.css` en `ia.css`. No se cambian la lógica de negocio, las APIs ni el contrato compartido. Si el diseño choca con una regla del contrato, manda el contrato.

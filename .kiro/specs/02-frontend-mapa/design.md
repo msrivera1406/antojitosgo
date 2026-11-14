@@ -121,3 +121,6 @@ destinoTrasLogin(usuario, next)                         // next seguro, o '/loca
 | `destinoTrasLogin` | Respeta `next` seguro, ignora inseguro, locatario sin `next` va a `/locatario` |
 
 Prueba manual en celular (Chrome Android y Safari iOS): ver tarea final.
+
+## Lineamientos de diseño UX/UI
+Esta spec sigue el prompt maestro de diseño en `.kiro/steering/diseno-ux-ui.md` y los principios de `.kiro/steering/etica-legal-sin-sesgos.md` (accesibilidad, privacidad y no sesgo). Aplican sobre todo: A (inicio), B (mapa), C (tarjetas) y las secciones 2 a 5 y 7 a 11 (define y mantiene los tokens y componentes base en `styles.css`). No se cambian la lógica de negocio, las APIs ni el contrato compartido. Si el diseño choca con una regla del contrato, manda el contrato.

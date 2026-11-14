@@ -152,3 +152,6 @@ En cada error la transacción se revierte, por lo que nunca se pierden ni se reg
 * **Dependencia de la spec 01:** `puestos/mios`, edición de puestos y productos, y `perfil` los entrega Int. 1. Usar datos de ejemplo mientras tanto y acordar la forma exacta del JSON.
 * **Sondeo y carga:** con pocos puestos en la demo es irrelevante. Se documenta el sondeo como decisión consciente.
 * **Cupón consumido al crear el pedido:** si el cliente nunca recoge, pierde el cupón. No hay cancelación en el MVP. Se documenta como decisión consciente.
+
+## Lineamientos de diseño UX/UI
+Esta spec sigue el prompt maestro de diseño en `.kiro/steering/diseno-ux-ui.md` y los principios de `.kiro/steering/etica-legal-sin-sesgos.md` (accesibilidad, privacidad y no sesgo). Aplican sobre todo: C (tarjetas), E (pedidos) y F (lealtad) y las secciones 7 a 9 y 11, usando los tokens de `styles.css` en `pedidos.css`. No se cambian la lógica de negocio, las APIs ni el contrato compartido. Si el diseño choca con una regla del contrato, manda el contrato.
