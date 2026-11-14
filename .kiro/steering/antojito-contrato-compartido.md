@@ -10,11 +10,11 @@ Regla: **solo el dueño edita un archivo**. Si necesitas un cambio en un archivo
 |---|---|---|
 | 1. DevOps / Backend core / BD | `01-infra-backend-core` | `Dockerfile`, `docker-compose.yml`, `.env.example`, `app.py`, `config.py`, `db.py`, `database.sql`, `requirements.txt`, `requirements-dev.txt`, `utils/auth.py`, `utils/puntos.py`, `utils/cupones.py`, `utils/respuestas.py`, `routes/auth_routes.py`, `routes/puestos_routes.py`, `scripts/`, `docs/despliegue.md`, `tests/conftest.py`, `tests/test_auth.py`, `tests/test_puestos.py`, `tests/test_cupones.py`, `tests/test_paginas.py` |
 | 2. Frontend / Mapa | `02-frontend-mapa` | `static/css/styles.css`, `static/js/api.js`, `static/js/map.js`, `static/js/auth.js`, `templates/base.html`, `templates/index.html`, `templates/recomendar.html`, `templates/login.html`, `static/js/tests/map.test.js` |
-| 3. Agente IA | `03-agente-ia` | `routes/ia_routes.py`, `services/clima.py`, `services/ia_contexto.py`, `static/js/gemini_live.js`, `static/css/ia.css`, `templates/partials/boton_ia.html`, `tests/test_ia.py`, `static/js/tests/gemini_live.test.js` |
+| 3. Agente IA | `03-agente-ia` | `routes/ia_routes.py`, `services/clima.py`, `services/ia_contexto.py`, `services/gemini_token.py`, `services/gemini_chat.py`, `scripts/ia_smoke.py`, `static/js/gemini_live.js`, `static/js/audio_utils.js`, `static/css/ia.css`, `templates/partials/boton_ia.html`, `tests/test_ia.py`, `static/js/tests/gemini_live.test.js` |
 | 4. Pedidos / Locatarios / Lealtad | `04-pedidos-locatarios-lealtad` | `routes/pedidos_routes.py`, `templates/puesto.html`, `templates/locatario.html`, `templates/perfil.html`, `static/js/pickup.js`, `static/js/locatario.js`, `static/js/perfil.js`, `static/css/pedidos.css`, `tests/test_pedidos.py`, `static/js/tests/pickup.test.js` |
 
 Puntos de integración (una sola línea en archivo ajeno, acordada de antemano):
-* `templates/index.html` (Int. 2) incluye `{% include 'partials/boton_ia.html' %}` y carga `gemini_live.js`.
+* `templates/index.html` (Int. 2) incluye `{% include 'partials/boton_ia.html' %}` y carga `gemini_live.js` como **módulo ES** (`<script type="module" src="...">`), porque usa el SDK JS de Gemini.
 * `templates/base.html` (Int. 2) expone los bloques `{% block content %}`, `{% block head %}` y `{% block scripts %}`. Todas las plantillas extienden `base.html`.
 * `app.py` (Int. 1) registra los cuatro blueprints desde el inicio. Int. 1 crea **blueprints vacíos** para `pedidos_routes` y `ia_routes` en la primera entrega, para que la app arranque y Int. 3 y 4 solo reemplacen su contenido.
 * Cada integrante agrega sus estilos en su propio CSS (`ia.css`, `pedidos.css`), no en `styles.css`.
@@ -38,7 +38,7 @@ Una rama por integrante (`feat/int1-infra`, `feat/int2-frontend`, `feat/int3-ia`
 | Franjas horarias (hora CDMX) | Mañana 05:00 a 11:59 (tamales, atole, chilaquiles). Mediodía 12:00 a 15:59 (tortas, tacos). Tarde/noche 16:00 a 04:59 (esquites, elotes, tacos). La franja de mediodía es una suposición nuestra. |
 | Verificación de puestos | Un `recomendado` pasa a `verificado` manualmente desde phpMyAdmin. No hay panel admin en el MVP. |
 | Fotos | Se guardan en `static/uploads/` (volumen Docker). S3 es opcional y queda fuera del MVP. Máx. 5 MB, solo JPG/PNG/WebP, nombre `uuid4`. |
-| Gemini | Modelo y API key **pendientes** (`GEMINI_API_KEY`, `GEMINI_MODEL` en `.env`). La clave **nunca** llega al navegador: el backend entrega un token efímero. |
+| Gemini | Voz: `gemini-3.8-live`, con respaldos `gemini-2.5-flash-native-audio-latest` y `gemini-3.1-flash-live-preview`. Chat de texto: `gemini-3.5-flash-lite`, con respaldos `gemini-3.1-flash-lite` y `gemini-3.8-flash`. Todo configurable en `.env` (`GEMINI_MODEL`, `GEMINI_MODEL_FALLBACKS`, `GEMINI_CHAT_MODEL`, `GEMINI_CHAT_MODEL_FALLBACKS`). Verificado con `scripts/ia_smoke.py`. La clave **nunca** llega al navegador: el backend entrega un token efímero con el modelo y las instrucciones bloqueados. |
 | HTTPS | `getUserMedia` (micrófono) y `geolocation` exigen contexto seguro. Funcionan en `localhost`, pero en EC2 hace falta HTTPS (ver spec 01). |
 
 ## 2.1 Recompensas con cupones
@@ -126,7 +126,8 @@ El documento original no cubre estas necesidades. Se agregan, y el dueño de cad
 | `PUT /api/puestos/<id>` | Int. 1 | Editar puesto (dueño o admin). |
 | `POST /api/puestos/<id>/productos` | Int. 1 | Agregar producto al menú. |
 | `PATCH /api/productos/<id>` | Int. 1 | Editar nombre, precio o disponibilidad. |
-| `GET /api/ia/token` | Int. 3 | Token efímero para Gemini Live sin exponer la API key. |
+| `GET /api/ia/token?lat=&lng=&excluir=` | Int. 3 | Token efímero para Gemini Live sin exponer la API key. Fija modelo e instrucciones. `excluir` lista modelos que ya fallaron para pasar al respaldo. |
+| `POST /api/ia/chat` | Int. 3 | Chat de texto de respaldo del asistente, con modelos de respaldo en el servidor. |
 | `GET /api/cupones/mios?puesto_id=` | Int. 4 | Cupones vigentes del usuario, filtrables por los aplicables a un puesto. |
 | Página `login.html` y rutas `/login`, `/registro` | Int. 2 | El documento no incluía pantalla de acceso. |
 
@@ -136,7 +137,7 @@ Rutas de vistas (las registra Int. 1 en `app.py`): `/`, `/puesto/<id>`, `/recome
 
 | Acción | Requisito |
 |---|---|
-| Ver mapa, listar y ver detalle de puestos, `GET /api/ia/contexto`, `GET /api/ia/token` | Público (el token lleva límite de peticiones por IP) |
+| Ver mapa, listar y ver detalle de puestos, `GET /api/ia/contexto`, `GET /api/ia/token`, `POST /api/ia/chat` | Público (token y chat llevan límite de peticiones por IP) |
 | Recomendar puesto, crear pedido, ver perfil propio, ver mis cupones | Sesión iniciada |
 | Crear/editar puesto y productos | `locatario` (solo sus puestos) o `admin` |
 | Ver y cambiar estado de pedidos de un puesto | `locatario` dueño de ese puesto o `admin` |

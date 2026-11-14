@@ -18,8 +18,15 @@ SECRET_KEY = os.getenv("SECRET_KEY", "dev-inseguro-cambiar-en-env")
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 
 # --- Gemini (spec 03) ---
+def _lista(nombre):
+    return [m.strip() for m in os.getenv(nombre, "").split(",") if m.strip()]
+
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "")
+GEMINI_MODEL_FALLBACKS = _lista("GEMINI_MODEL_FALLBACKS")
+GEMINI_CHAT_MODEL = os.getenv("GEMINI_CHAT_MODEL", "")
+GEMINI_CHAT_MODEL_FALLBACKS = _lista("GEMINI_CHAT_MODEL_FALLBACKS")
 
 # --- Dominio ---
 CATEGORIAS = ["chilaquiles", "esquites", "tacos", "tamales", "tortas", "postres", "bebidas"]
