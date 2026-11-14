@@ -109,7 +109,7 @@ INSERT INTO puestos (id, propietario_id, recomendado_por, nombre, descripcion, c
 (2, 2, NULL, 'Tamales y Atole El Güero', 'Tamales de rajas, mole y dulce con atole caliente.', 'tamales', 19.41680000, -99.15880000, '06:00 a 11:00', 'verificado', NULL),
 (3, 2, NULL, 'Esquites Parque México', 'Esquites y elotes con todos los toppings, junto al Parque México.', 'esquites', 19.41130000, -99.17070000, '17:00 a 23:00', 'verificado', NULL),
 (4, 3, NULL, 'Tacos de Canasta Zócalo', 'Tacos de canasta de papa, frijol y chicharrón.', 'tacos', 19.43400000, -99.13100000, '08:00 a 16:00', 'verificado', NULL),
-(5, 3, NULL, 'Pan Dulce La Esperanza', 'Conchas, orejas y cuernitos recién horneados.', 'postres', 19.43610000, -99.13860000, '07:00 a 20:00', 'verificado', NULL),
+(5, 3, NULL, 'Pan Dulce Don Chucho', 'Conchas, orejas y cuernitos recién horneados.', 'postres', 19.43610000, -99.13860000, '07:00 a 20:00', 'verificado', NULL),
 (6, 3, NULL, 'Tortas Plaza Hidalgo', 'Tortas de milanesa, jamón y pierna en el centro de Coyoacán.', 'tortas', 19.34990000, -99.16200000, '12:00 a 20:00', 'verificado', NULL),
 (7, NULL, 5, 'Nieves y Aguas Frescas Lupita', 'Nieves de sabores y aguas frescas del día.', 'bebidas', 19.41280000, -99.17350000, '11:00 a 20:00', 'recomendado', NULL),
 (8, NULL, 4, 'Elotes Jardín Centenario', 'Elotes y esquites a la salida del jardín.', 'esquites', 19.34890000, -99.16270000, '16:00 a 22:00', 'recomendado', NULL);
