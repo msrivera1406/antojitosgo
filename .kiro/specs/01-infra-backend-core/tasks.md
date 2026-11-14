@@ -47,10 +47,10 @@ Marca cada tarea al terminarla. Las tareas de **Fase 0** desbloquean a los demá
   - [ ] 7.5 `POST /api/puestos/<id>/productos`, `PATCH /api/productos/<id>`
   - [ ] 7.6 Pruebas de escritura y permisos
   - _Requisitos: R5.4 a R5.10, R8.2_
-- [ ] 8. Datos semilla
+- [x] 8. Datos semilla
   - [x] 8.1 `scripts/generar_hash.py` y hashes de los usuarios de prueba
   - [x] 8.2 8 a 10 puestos con productos en Roma, Condesa, Centro y Coyoacán, y los datos de demostración de cupones y pedidos entregados (R2.5)
-  - [ ] 8.3 Verificar la carga en phpMyAdmin (`localhost:8080`) con `docker compose down -v && docker compose up --build`
+  - [x] 8.3 Verificar la carga en phpMyAdmin (`localhost:8080`) con `docker compose down -v && docker compose up --build`
   - [x] 8.4 Prueba que verifique conteos y cobertura de categorías contra `antojito_test`
   - _Requisitos: R2_
 - [ ] 9. `tests/test_paginas.py`: cada vista responde 200 (las plantillas reales llegan de las otras specs; usar `base.html` provisional si hace falta)
