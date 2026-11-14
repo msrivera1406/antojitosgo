@@ -1,8 +1,8 @@
 """Puestos, recomendaciones y menú. Dueño: Integrante 1 (spec 01).
 
-Implementado: POST /api/puestos/recomendar (tarea 7.2).
-Pendiente: GET /api/puestos, GET /api/puestos/categorias, GET /api/puestos/mios, GET /api/puestos/<id>,
-POST /api/puestos/crear, PUT /api/puestos/<id>, POST /api/puestos/<id>/productos, PATCH /api/productos/<id>
+Implementado: GET /api/puestos, GET /api/puestos/categorias, GET /api/puestos/<id> (tarea 6) y
+POST /api/puestos/recomendar (tarea 7.2).
+Pendiente: GET /api/puestos/mios, POST /api/puestos/crear, PUT /api/puestos/<id>, POST /api/puestos/<id>/productos, PATCH /api/productos/<id>
 """
 import math
 
@@ -11,7 +11,7 @@ from flask import Blueprint, jsonify, request
 import config
 from db import db_cursor
 from utils import fotos
-from utils.auth import login_requerido, usuario_actual
+from utils.auth import es_dueno_o_admin, login_requerido, usuario_actual
 from utils.cupones import registrar_recomendacion
 from utils.puntos import sumar_puntos
 from utils.respuestas import error
@@ -19,6 +19,17 @@ from utils.respuestas import error
 puestos_bp = Blueprint("puestos", __name__)
 
 NOMBRE_MAX, DESCRIPCION_MAX = 120, 500
+ESTATUS_VALIDOS = ("verificado", "recomendado")
+CAMPOS_PUESTO = "id, nombre, descripcion, categoria, latitud, longitud, horario, estatus, foto_url"
+
+
+def _puesto_json(fila):
+    return {campo: fila[campo] for campo in CAMPOS_PUESTO.split(", ")}
+
+
+def _producto_json(fila):
+    return {"id": fila["id"], "nombre": fila["nombre"], "precio": fila["precio"],
+            "disponible": bool(fila["disponible"])}
 
 
 def _coordenada(texto, minimo, maximo):
@@ -95,3 +106,48 @@ def recomendar():
         "puntos_totales": puntos_totales,
         "cupon_ganado": cupon,
     }), 201
+
+@puestos_bp.route("/api/puestos")
+def listar():
+    categoria = request.args.get("categoria", "").strip()
+    estatus = request.args.get("estatus", "").strip()
+    if categoria and categoria not in config.CATEGORIAS:
+        return error("La categoría no es válida", 400)
+    if estatus and estatus != "todos" and estatus not in ESTATUS_VALIDOS:
+        return error("El estatus debe ser verificado, recomendado o todos", 400)
+    condiciones, parametros = [], []
+    if categoria:
+        condiciones.append("categoria = %s")
+        parametros.append(categoria)
+    if estatus and estatus != "todos":
+        condiciones.append("estatus = %s")
+        parametros.append(estatus)
+    consulta = f"SELECT {CAMPOS_PUESTO} FROM puestos"
+    if condiciones:
+        consulta += " WHERE " + " AND ".join(condiciones)
+    with db_cursor(commit=False) as cursor:
+        cursor.execute(consulta + " ORDER BY id", parametros)
+        return jsonify([_puesto_json(f) for f in cursor.fetchall()])
+
+
+@puestos_bp.route("/api/puestos/categorias")
+def categorias():
+    return jsonify(config.CATEGORIAS)
+
+
+@puestos_bp.route("/api/puestos/<int:puesto_id>")
+def detalle(puesto_id):
+    with db_cursor(commit=False) as cursor:
+        cursor.execute(f"SELECT {CAMPOS_PUESTO} FROM puestos WHERE id = %s", (puesto_id,))
+        fila = cursor.fetchone()
+        if fila is None:
+            return error("No encontramos ese puesto", 404)
+        usuario = usuario_actual()
+        ve_todo = usuario is not None and es_dueno_o_admin(cursor, puesto_id, usuario)
+        consulta = "SELECT id, nombre, precio, disponible FROM productos WHERE puesto_id = %s"
+        if not ve_todo:
+            consulta += " AND disponible = TRUE"
+        cursor.execute(consulta + " ORDER BY id", (puesto_id,))
+        resultado = _puesto_json(fila)
+        resultado["productos"] = [_producto_json(f) for f in cursor.fetchall()]
+    return jsonify(resultado)

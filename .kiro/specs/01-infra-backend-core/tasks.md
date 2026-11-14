@@ -34,10 +34,10 @@ Marca cada tarea al terminarla. Las tareas de **Fase 0** desbloquean a los demá
   - [x] 5.3 `GET /api/usuarios/<id>/perfil` con insignia, cupones vigentes, progreso y pedidos
   - [x] 5.4 `tests/test_auth.py`
   - _Requisitos: R4, R8.2_
-- [ ] 6. Puestos, lectura (`routes/puestos_routes.py`)
-  - [ ] 6.1 `GET /api/puestos` con filtros y validación
-  - [ ] 6.2 `GET /api/puestos/<id>` y `GET /api/puestos/categorias`
-  - [ ] 6.3 Pruebas de lectura
+- [x] 6. Puestos, lectura (`routes/puestos_routes.py`)
+  - [x] 6.1 `GET /api/puestos` con filtros y validación
+  - [x] 6.2 `GET /api/puestos/<id>` y `GET /api/puestos/categorias`
+  - [x] 6.3 Pruebas de lectura
   - _Requisitos: R5.1 a R5.3_
 - [ ] 7. Puestos, escritura
   - [x] 7.1 Helper de validación y guardado de foto (firma de bytes, 5 MB, `uuid4`)
