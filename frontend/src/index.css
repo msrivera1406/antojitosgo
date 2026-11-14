@@ -1,0 +1,46 @@
+@import '@fontsource-variable/nunito';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-size: 100%; /* respeta el tamaño de texto del usuario */
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-crema-50 font-sans text-base text-tinta-800 antialiased;
+    overflow-wrap: anywhere;
+    min-width: 320px;
+  }
+  h1, h2, h3 { @apply text-tinta-900 font-extrabold; text-wrap: balance; }
+  p { text-wrap: pretty; }
+  :focus-visible {
+    outline: 3px solid theme('colors.primario.700');
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+  ::selection { background: theme('colors.primario.100'); }
+}
+
+@layer components {
+  .pagina { @apply mx-auto w-full max-w-5xl px-4 sm:px-6; }
+  .pagina-estrecha { @apply mx-auto w-full max-w-xl px-4 sm:px-6; }
+  .seccion-titulo { @apply text-titulo-3 font-extrabold text-tinta-900; }
+  .texto-suave { @apply text-tinta-600; }
+}
+
+@layer utilities {
+  .pb-nav { padding-bottom: calc(theme('spacing.nav') + env(safe-area-inset-bottom)); }
+  .bottom-sobre-nav { bottom: calc(theme('spacing.nav') + env(safe-area-inset-bottom) + 1rem); }
+}
+
+/* Movimiento reducido: sin animaciones ni transiciones largas. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
