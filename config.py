@@ -23,7 +23,8 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "")
 
 # --- Dominio ---
 CATEGORIAS = ["chilaquiles", "esquites", "tacos", "tamales", "tortas", "postres", "bebidas"]
-CDMX_BBOX = {"lat": (19.0, 19.7), "lng": (-99.4, -98.9)}
+# Zona metropolitana de la CDMX y parte del Edomex. Debe coincidir con frontend/src/lib/config.js.
+CDMX_BBOX = {"lat": (19.0, 19.9), "lng": (-99.45, -98.75)}
 CDMX_CENTRO = (19.4326, -99.1332)
 
 # --- Fotos ---

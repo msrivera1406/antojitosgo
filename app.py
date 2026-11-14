@@ -1,7 +1,7 @@
 """Servidor Flask. Dueño: Integrante 1. Registra blueprints, errores JSON y rutas de vistas."""
 import os
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 
@@ -44,9 +44,18 @@ def create_app():
         app.register_blueprint(bp)
 
     # --- Vistas ---
+    # La SPA de React (frontend/dist) atiende "/". Si aún no se ha compilado, se usa la plantilla vieja.
+    dist = os.path.join(config.BASE_DIR, "frontend", "dist")
+
     @app.route("/")
     def index():
+        if os.path.isfile(os.path.join(dist, "index.html")):
+            return send_from_directory(dist, "index.html")
         return render_template("index.html")
+
+    @app.route("/assets/<path:ruta>")
+    def assets_frontend(ruta):
+        return send_from_directory(os.path.join(dist, "assets"), ruta)
 
     @app.route("/puesto/<int:puesto_id>")
     def vista_puesto(puesto_id):
