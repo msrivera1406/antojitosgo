@@ -3,7 +3,7 @@ Rutas a implementar: GET /api/puestos, GET /api/puestos/categorias, GET /api/pue
 GET /api/puestos/<id>, POST /api/puestos/recomendar, POST /api/puestos/crear, PUT /api/puestos/<id>,
 POST /api/puestos/<id>/productos, PATCH /api/productos/<id>
 
-Implementadas en la branch integracion-mapa: GET /api/puestos/cercanos.
+Implementadas en la branch integracion-mapa: GET /api/puestos/cercanos, GET /api/puestos/<id>.
 """
 import math
 
@@ -11,6 +11,7 @@ from flask import Blueprint, jsonify, request
 
 import config
 from db import db_cursor
+from utils.auth import usuario_actual
 from utils.geo import RADIO_TIERRA_M, caja_envolvente, dentro_del_area
 from utils.respuestas import error
 
@@ -103,3 +104,37 @@ def puestos_cercanos():
     for fila in filas:
         fila["distancia_m"] = round(float(fila["distancia_m"]))
     return jsonify(filas)
+
+
+@puestos_bp.route("/api/puestos/<int:puesto_id>")
+def detalle_puesto(puesto_id):
+    """Puesto con su menú. Los clientes ven solo productos disponibles; el dueño y el admin ven todos."""
+    with db_cursor(commit=False) as cursor:
+        cursor.execute(
+            """
+            SELECT id, nombre, descripcion, categoria, latitud, longitud, horario, estatus,
+                   foto_url, propietario_id
+            FROM puestos WHERE id = %s
+            """,
+            (puesto_id,),
+        )
+        puesto = cursor.fetchone()
+        if puesto is None:
+            return error("No encontramos ese puesto", 404)
+
+        usuario = usuario_actual()
+        ve_todo = usuario is not None and (
+            usuario["rol"] == "admin" or usuario["id"] == puesto["propietario_id"]
+        )
+        consulta = "SELECT id, nombre, precio, disponible FROM productos WHERE puesto_id = %s"
+        if not ve_todo:
+            consulta += " AND disponible = TRUE"
+        cursor.execute(consulta + " ORDER BY id", (puesto_id,))
+        productos = cursor.fetchall()
+
+    # El propietario no forma parte de la forma pública del Puesto.
+    del puesto["propietario_id"]
+    for producto in productos:
+        producto["disponible"] = bool(producto["disponible"])
+    puesto["productos"] = productos
+    return jsonify(puesto)
