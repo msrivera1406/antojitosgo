@@ -15,6 +15,7 @@ static/uploads/*
 
 # Node (solo para pruebas del frontend)
 node_modules/
+frontend/dist/
 
 # Editor / SO
 .idea/

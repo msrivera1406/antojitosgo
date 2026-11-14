@@ -2,6 +2,8 @@
 
 Este archivo complementa a `AntojitoGo.md`. Si ambos se contradicen, **este archivo prevalece** (recoge las decisiones tomadas después de la primera revisión). Las cuatro specs en `.kiro/specs/` dependen de lo definido aquí.
 
+> **Actualización (branch `integracion-mapa`):** el frontend pasa a React + Tailwind + MapLibre GL dentro de `frontend/`. La sección 9 reemplaza lo que contradiga en las secciones 1, 3 (reglas de DOM) y 7 (pruebas de frontend).
+
 ## 1. Propiedad de archivos (para no pisarse)
 
 Regla: **solo el dueño edita un archivo**. Si necesitas un cambio en un archivo ajeno, pídelo al dueño o abre un PR pequeño hacia su rama.
@@ -159,3 +161,27 @@ Rutas de vistas (las registra Int. 1 en `app.py`): `/`, `/puesto/<id>`, `/recome
 ## 8. Fuera de alcance del MVP
 
 Delivery, pagos en línea, panel admin, historial de puntos, notificaciones push, S3, cancelación de pedidos (por eso un cupón se consume al crear el pedido y no se devuelve), eliminación de productos (se marcan `disponible = false`), cupones transferibles o acumulables.
+
+## 9. Frontend en React (decisión de la branch `integracion-mapa`)
+Reemplaza la decisión original de Vanilla JS con plantillas Jinja. El backend sigue en Flask y no cambia su contrato de API.
+
+| Tema | Decisión |
+|---|---|
+| Stack | React 19, Vite, Tailwind CSS 4, MapLibre GL JS 6. Código en `frontend/`. |
+| Mapa | MapLibre GL en lugar de Leaflet, para tener inclinación (`pitch`) y rotación (`bearing`) nativas en la vista de primera persona. Tiles raster de OpenStreetMap (con atribución visible). La URL se configura con `VITE_TILE_URL`. |
+| Geolocalización | Solo `frontend/src/hooks/useGeolocalizacion.js` accede a la API de ubicación. Hoy usa `navigator.geolocation`. Si la app se empaqueta con Capacitor, solo se cambia ese archivo. |
+| Privacidad | El servidor no recibe ni guarda la ubicación del usuario. El cliente envía coordenadas solo como parámetros de consulta (por ejemplo `GET /api/puestos/cercanos`). |
+| Área cubierta | Zona metropolitana de la CDMX y parte del Edomex: lat 19.0 a 19.9, lng -99.45 a -98.75. Está en `config.CDMX_BBOX` y en `frontend/src/lib/config.js`. Deben mantenerse iguales. |
+| Servir la app | Flask sirve `frontend/dist/index.html` en `/` y los archivos de `frontend/dist/assets/` en `/assets/`. Las demás vistas siguen en Jinja hasta que cada una migre. Si `dist` no existe, `/` usa la plantilla vieja. |
+| Desarrollo | `docker compose up` levanta además el servicio `frontend` (Vite en `http://localhost:5173`, con proxy a `/api` y `/static`). Para probar el GPS desde un teléfono por la red local se necesita HTTPS: `VITE_HTTPS=1 docker compose up`. |
+| Producción | El `Dockerfile` compila el frontend en una etapa Node y copia `dist` a la imagen de Flask. |
+| Pruebas de frontend | Lógica pura en `frontend/src/lib/*.js` con pruebas `*.test.js`, ejecutadas con `node --test` (`npm test` dentro de `frontend/`). Sustituye a `static/js/tests/`. |
+| Plantillas Jinja y `static/js` | Se conservan sin usar para las vistas que aún no migran. No se borran. |
+
+### Propiedad de archivos nueva
+| Archivos | Dueño |
+|---|---|
+| `frontend/**` (excepto lo que otra spec migre) | Int. 2 |
+| Cambios en `Dockerfile`, `docker-compose.yml`, `.dockerignore`, `.gitignore`, `app.py`, `config.py` hechos en esta branch | Int. 1 revisa en el PR |
+| `GET /api/puestos/cercanos` (fase 2) | Int. 1 (`routes/puestos_routes.py`) |
+
