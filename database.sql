@@ -3,6 +3,7 @@
 --   usuarios.recomendaciones_contadas, puestos.recomendado_por, pedidos.cupon_id y la tabla cupones.
 -- Solo se ejecuta con el volumen de MySQL vacío. Para reiniciar: docker compose down -v
 
+SET NAMES utf8mb4;  -- evita textos con acentos mal codificados al cargar el script
 CREATE DATABASE IF NOT EXISTS antojito_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE antojito_db;
 

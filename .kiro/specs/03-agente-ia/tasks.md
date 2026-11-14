@@ -9,7 +9,7 @@ Rama de trabajo: `feat/int3-ia`. Pruebas del backend: `docker compose run --rm -
   - Chat: `gemini-3.5-flash-lite` (principal), `gemini-3.1-flash-lite` y `gemini-3.8-flash` (respaldos). `gemini-2.5-flash` ya no está disponible para cuentas nuevas.
   - Variables en `.env` y `.env.example`, y lectura en `config.py`.
   - _Requisitos: R3, R7, R8_
-- [ ] 0.1 Verificar si el cliente puede omitir `system_instruction` al conectar cuando el token ya lo trae bloqueado (si no, el cliente lo recibe en la respuesta del token y lo envía igual)
+- [x] 0.1 Verificado: el cliente puede omitir `system_instruction` al conectar; el token ya lo trae bloqueado y se aplica (el agente respondió con las instrucciones del token)
   - _Requisitos: R3.1_
 
 ## Fase 1: Backend
@@ -30,19 +30,19 @@ Rama de trabajo: `feat/int3-ia`. Pruebas del backend: `docker compose run --rm -
   - [x] 3.2 `construir_contexto` (fuera de CDMX no consulta puestos)
   - [x] 3.3 Pruebas contra MySQL real (`antojito_test_ia`, se omiten si no hay BD)
   - _Requisitos: R2.4, R2.5, R5.4_
-- [ ] 4. Límite por IP y selección de modelos
-  - [ ] 4.1 `services/limitador.py` (ventana deslizante, reloj inyectable) y sus pruebas
-  - [ ] 4.2 `services/gemini_token.py`: `modelos_voz`, `elegir_modelo(excluir)`, `crear_token` con 1 reintento y sus pruebas
+- [x] 4. Límite por IP y selección de modelos
+  - [x] 4.1 `services/limitador.py` (ventana deslizante, reloj inyectable) y sus pruebas
+  - [x] 4.2 `services/gemini_token.py`: `modelos_voz`, `elegir_modelo(excluir)`, `crear_token` con 1 reintento y sus pruebas
   - _Requisitos: R3.2, R3.3, R3.5, R3.6_
-- [ ] 5. Chat de texto con respaldos (`services/gemini_chat.py`)
-  - [ ] 5.1 `generar_respuesta` con reintentos por modelo, espera con variación, límites de 12 s y 20 s, y clasificación de errores
-  - [ ] 5.2 Pruebas con cliente simulado y reloj inyectado (sin esperas reales)
+- [x] 5. Chat de texto con respaldos (`services/gemini_chat.py`)
+  - [x] 5.1 `generar_respuesta` con reintentos por modelo, espera con variación, límites de 12 s y 20 s, y clasificación de errores
+  - [x] 5.2 Pruebas con cliente simulado y reloj inyectado (sin esperas reales)
   - _Requisitos: R7.3 a R7.7_
-- [ ] 6. Rutas (`routes/ia_routes.py`)
-  - [ ] 6.1 `GET /api/ia/contexto` con validación y ubicación por defecto
-  - [ ] 6.2 `GET /api/ia/token` con `excluir`, límite y errores `503`, `502`, `429`
-  - [ ] 6.3 `POST /api/ia/chat` con validación del cuerpo y límite
-  - [ ] 6.4 Pruebas de las tres rutas con Gemini y Open-Meteo simulados
+- [x] 6. Rutas (`routes/ia_routes.py`)
+  - [x] 6.1 `GET /api/ia/contexto` con validación y ubicación por defecto
+  - [x] 6.2 `GET /api/ia/token` con `excluir`, límite y errores `503`, `502`, `429`
+  - [x] 6.3 `POST /api/ia/chat` con validación del cuerpo y límite
+  - [x] 6.4 Pruebas de las tres rutas con Gemini y Open-Meteo simulados
   - _Requisitos: R2.1 a R2.4, R3, R7, R9.1_
 
 ## Fase 2: Cliente

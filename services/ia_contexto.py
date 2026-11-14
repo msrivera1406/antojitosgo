@@ -211,7 +211,8 @@ def construir_contexto(cursor, lat, lng, *, ubicacion_por_defecto=False, canal="
     """Devuelve {'system_instruction', 'contexto'} listo para la API."""
     ahora = ahora or ahora_cdmx()
     clima = (obtener_clima_fn or obtener_clima)(lat, lng)
-    puestos = buscar_puestos_cercanos(cursor, lat, lng) if dentro_de_cdmx(lat, lng) else []
+    # Sin cursor (la BD no respondió) el asistente sigue funcionando, sin lista de puestos.
+    puestos = buscar_puestos_cercanos(cursor, lat, lng) if cursor is not None and dentro_de_cdmx(lat, lng) else []
     return {
         "system_instruction": construir_system_instruction(
             lat, lng, ahora, clima, puestos, canal=canal, ubicacion_por_defecto=ubicacion_por_defecto

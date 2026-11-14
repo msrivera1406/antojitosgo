@@ -91,7 +91,7 @@ El JSON se serializa con `json.dumps(..., ensure_ascii=False)` y los textos de u
 | `POST /api/ia/chat` | `200 {respuesta, modelo}`, `400` cuerpo inválido, `502` configuración, `503` modelos ocupados, `429` por límite |
 
 * Límite por IP con un `dict` de ventanas deslizantes en memoria (10/min). Basta para un MVP de un solo proceso.
-* El token se crea con `google.genai.Client(api_key=..., http_options={"api_version": "v1beta"}).auth_tokens.create(config={"uses": 1, "expire_time": ..., "new_session_expire_time": ..., "live_connect_constraints": {"model": modelo, "config": {"response_modalities": ["AUDIO"], "system_instruction": texto}}})` y se devuelve `token.name`. El cliente conecta con el mismo `model` y la misma configuración.
+* El token se crea con `google.genai.Client(api_key=..., http_options={"api_version": "v1beta"}).auth_tokens.create(config={"uses": 1, "expire_time": ..., "new_session_expire_time": ..., "live_connect_constraints": {"model": modelo, "config": {"response_modalities": ["AUDIO"], "system_instruction": texto}}})` y se devuelve `token.name`. El token también bloquea las transcripciones de entrada y salida y la reanudación de sesión. El cliente conecta con el mismo `model` y solo indica `responseModalities: ["AUDIO"]`: se verificó que las instrucciones del token se aplican aunque el cliente no las envíe.
 * Solo se registra en el log el error técnico, nunca la clave.
 
 ## Frontend (`gemini_live.js`)
@@ -176,7 +176,7 @@ def generar_respuesta(system_instruction, historial, mensaje, *, cliente=None, d
 def es_reintentable(error) -> bool      # 429, 500, 503, 504, tiempo agotado
 def es_modelo_no_disponible(error) -> bool   # 404
 ```
-Para cada modelo: hasta 2 intentos (esperas de 0,5 s y 1 s con variación), 12 s por llamada y 20 s en total. `cliente`, `dormir` y `aleatorio` se inyectan para que las pruebas no hagan esperas ni llamadas de red. Se limita la salida (`max_output_tokens`) y el razonamiento para mantener la latencia baja. Los mensajes del usuario van como `contents` y el contexto como `system_instruction`.
+Para cada modelo: hasta 2 intentos con 0,5 s de espera entre ellos (±25 %), sin espera al cambiar de modelo, 12 s por llamada y 20 s en total. `cliente`, `dormir` y `aleatorio` se inyectan para que las pruebas no hagan esperas ni llamadas de red. Se limita la salida (`max_output_tokens`) y el razonamiento para mantener la latencia baja. Los mensajes del usuario van como `contents` y el contexto como `system_instruction`.
 
 ### Interfaz
 Panel dentro de `#zona-ia` con burbujas, entrada y envío. Cambia entre voz y texto sin perder el historial de la página. Se abre solo ante micrófono denegado, sin soporte, sin HTTPS o modelos de voz agotados.
