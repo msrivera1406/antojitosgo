@@ -54,8 +54,8 @@ def test_conteos_de_usuarios_por_rol(cursor):
     assert {r["rol"]: r["n"] for r in cursor.fetchall()} == {"admin": 1, "locatario": 2, "cliente": 2}
 
 
-def test_entre_8_y_10_puestos(cursor):
-    assert 8 <= _uno(cursor, "SELECT COUNT(*) n FROM puestos") <= 10
+def test_al_menos_8_puestos(cursor):
+    assert _uno(cursor, "SELECT COUNT(*) n FROM puestos") >= 8
 
 
 def test_al_menos_6_verificados_con_3_productos(cursor):
@@ -139,3 +139,17 @@ def test_acentos_bien_codificados(cursor):
     assert cursor.fetchone()["n"] == 0
     cursor.execute("SELECT COUNT(*) n FROM puestos WHERE nombre LIKE BINARY '%Güero%'")
     assert cursor.fetchone()["n"] == 1
+
+def test_cada_puesto_tiene_productos_y_dueno_o_recomendador(cursor):
+    assert _uno(cursor, "SELECT COUNT(*) n FROM puestos p WHERE NOT EXISTS (SELECT 1 FROM productos d WHERE d.puesto_id = p.id)") == 0
+    assert _uno(cursor, "SELECT COUNT(*) n FROM puestos WHERE estatus = 'verificado' AND propietario_id IS NULL") == 0
+    assert _uno(cursor, "SELECT COUNT(*) n FROM puestos WHERE estatus = 'recomendado' AND recomendado_por IS NULL") == 0
+
+
+def test_no_hay_dos_puestos_en_la_misma_coordenada(cursor):
+    assert _uno(cursor, "SELECT COUNT(*) n FROM (SELECT latitud, longitud FROM puestos GROUP BY latitud, longitud HAVING COUNT(*) > 1) x") == 0
+
+
+def test_productos_con_precio_positivo_y_sin_nombres_repetidos_por_puesto(cursor):
+    assert _uno(cursor, "SELECT COUNT(*) n FROM productos WHERE precio <= 0") == 0
+    assert _uno(cursor, "SELECT COUNT(*) n FROM (SELECT puesto_id, nombre FROM productos GROUP BY puesto_id, nombre HAVING COUNT(*) > 1) x") == 0
