@@ -1,0 +1,22 @@
+# Secretos y entorno
+.env
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Subidas de usuarios (se conserva la carpeta)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Node (solo para pruebas del frontend)
+node_modules/
+
+# Editor / SO
+.idea/
+.vscode/
+.DS_Store

@@ -1,0 +1,5 @@
+Flask>=3.0,<4
+flask-cors>=4.0
+mysql-connector-python>=8.4,<10
+requests>=2.31
+google-genai>=1.0

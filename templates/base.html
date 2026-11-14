@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Antojito{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body{% block body_attrs %}{% endblock %}>
+  {# PLACEHOLDER. Dueño: Integrante 2 (spec 02, tarea 1.1). Reemplazar con el layout real. #}
+  <header class="cabecera"><strong>Antojito</strong></header>
+  <main>{% block content %}{% endblock %}</main>
+  <nav class="nav-inferior">
+    <a href="/">Mapa</a>
+    <a href="/perfil">Perfil</a>
+    <a href="/locatario">Mi puesto</a>
+    <a href="/login">Entrar</a>
+  </nav>
+  <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
