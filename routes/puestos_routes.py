@@ -5,13 +5,14 @@ POST /api/puestos/recomendar (tarea 7.2).
 Pendiente: GET /api/puestos/mios, POST /api/puestos/crear, PUT /api/puestos/<id>, POST /api/puestos/<id>/productos, PATCH /api/productos/<id>
 """
 import math
+from decimal import Decimal, InvalidOperation
 
 from flask import Blueprint, jsonify, request
 
 import config
 from db import db_cursor
 from utils import fotos
-from utils.auth import es_dueno_o_admin, login_requerido, usuario_actual
+from utils.auth import es_dueno_o_admin, login_requerido, rol_requerido, usuario_actual
 from utils.cupones import registrar_recomendacion
 from utils.puntos import sumar_puntos
 from utils.respuestas import error
@@ -19,6 +20,8 @@ from utils.respuestas import error
 puestos_bp = Blueprint("puestos", __name__)
 
 NOMBRE_MAX, DESCRIPCION_MAX = 120, 500
+HORARIO_MAX, PRODUCTO_NOMBRE_MAX = 100, 100
+PRECIO_MAX = Decimal("999999.99")  # columna DECIMAL(8, 2)
 ESTATUS_VALIDOS = ("verificado", "recomendado")
 CAMPOS_PUESTO = "id, nombre, descripcion, categoria, latitud, longitud, horario, estatus, foto_url"
 
@@ -151,3 +154,237 @@ def detalle(puesto_id):
         resultado = _puesto_json(fila)
         resultado["productos"] = [_producto_json(f) for f in cursor.fetchall()]
     return jsonify(resultado)
+
+# --- Escritura: validación compartida ---------------------------------------------------------
+def _validar_puesto(datos, parcial):
+    """Valida los campos editables de un puesto (nombre, descripcion, categoria, latitud, longitud, horario).
+
+    Con parcial=True solo valida los que vienen; si no, nombre, categoria, latitud y longitud son
+    obligatorios. Devuelve (campos limpios, None) o (None, mensaje).
+    """
+    campos = {}
+    if not parcial or "nombre" in datos:
+        nombre = datos.get("nombre")
+        if not isinstance(nombre, str) or not nombre.strip() or len(nombre.strip()) > NOMBRE_MAX:
+            return None, f"El nombre es obligatorio y de máximo {NOMBRE_MAX} caracteres"
+        campos["nombre"] = nombre.strip()
+    if not parcial or "categoria" in datos:
+        if datos.get("categoria") not in config.CATEGORIAS:
+            return None, "La categoría no es válida"
+        campos["categoria"] = datos["categoria"]
+    for clave, maximo, etiqueta in (("descripcion", DESCRIPCION_MAX, "La descripción"), ("horario", HORARIO_MAX, "El horario")):
+        if clave in datos and datos[clave] is not None:
+            valor = datos[clave]
+            if not isinstance(valor, str) or len(valor.strip()) > maximo:
+                return None, f"{etiqueta} debe ser texto de máximo {maximo} caracteres"
+            campos[clave] = valor.strip() or None
+        elif clave in datos:
+            campos[clave] = None
+    if not parcial or "latitud" in datos or "longitud" in datos:
+        if parcial and ("latitud" not in datos or "longitud" not in datos):
+            return None, "Para cambiar la ubicación envía latitud y longitud"
+        latitud = _coordenada(datos.get("latitud"), *config.CDMX_BBOX["lat"]) if not isinstance(datos.get("latitud"), bool) else None
+        longitud = _coordenada(datos.get("longitud"), *config.CDMX_BBOX["lng"]) if not isinstance(datos.get("longitud"), bool) else None
+        if latitud is None or longitud is None:
+            return None, "Las coordenadas deben estar dentro de la Ciudad de México"
+        campos["latitud"], campos["longitud"] = latitud, longitud
+    return campos, None
+
+
+def _validar_producto(datos, parcial):
+    """Valida nombre, precio (> 0, 2 decimales) y disponible. Devuelve (campos, None) o (None, mensaje)."""
+    campos = {}
+    if not parcial or "nombre" in datos:
+        nombre = datos.get("nombre")
+        if not isinstance(nombre, str) or not nombre.strip() or len(nombre.strip()) > PRODUCTO_NOMBRE_MAX:
+            return None, f"El nombre del producto es obligatorio y de máximo {PRODUCTO_NOMBRE_MAX} caracteres"
+        campos["nombre"] = nombre.strip()
+    if not parcial or "precio" in datos:
+        precio = datos.get("precio")
+        try:
+            if isinstance(precio, bool) or not isinstance(precio, (int, float, str)):
+                raise InvalidOperation
+            precio = Decimal(str(precio).strip())
+            if not precio.is_finite() or precio <= 0 or precio > PRECIO_MAX or precio != precio.quantize(Decimal("0.01")):
+                raise InvalidOperation
+        except InvalidOperation:
+            return None, "El precio debe ser mayor a 0, con máximo 2 decimales"
+        campos["precio"] = precio
+    if "disponible" in datos:
+        if not isinstance(datos["disponible"], bool):
+            return None, "disponible debe ser verdadero o falso"
+        campos["disponible"] = datos["disponible"]
+    elif not parcial:
+        campos["disponible"] = True
+    return campos, None
+
+
+def _cuerpo_json():
+    datos = request.get_json(silent=True)
+    return datos if isinstance(datos, dict) else None
+
+
+def _puesto_con_productos(cursor, puesto_id, todos_los_productos):
+    cursor.execute(f"SELECT {CAMPOS_PUESTO} FROM puestos WHERE id = %s", (puesto_id,))
+    resultado = _puesto_json(cursor.fetchone())
+    consulta = "SELECT id, nombre, precio, disponible FROM productos WHERE puesto_id = %s"
+    if not todos_los_productos:
+        consulta += " AND disponible = TRUE"
+    cursor.execute(consulta + " ORDER BY id", (puesto_id,))
+    resultado["productos"] = [_producto_json(f) for f in cursor.fetchall()]
+    return resultado
+
+
+def _permiso_sobre_puesto(cursor, puesto_id):
+    """None si el usuario en sesión puede editar el puesto; si no, la respuesta de error (404 o 403)."""
+    cursor.execute("SELECT id FROM puestos WHERE id = %s", (puesto_id,))
+    if cursor.fetchone() is None:
+        return error("No encontramos ese puesto", 404)
+    if not es_dueno_o_admin(cursor, puesto_id, usuario_actual()):
+        return error("No tienes permiso para editar este puesto", 403)
+    return None
+
+
+# --- Escritura: puestos ----------------------------------------------------------------------
+@puestos_bp.route("/api/puestos/crear", methods=["POST"])
+@rol_requerido("locatario", "admin")
+def crear():
+    datos = _cuerpo_json()
+    if datos is None:
+        return error("Envía los datos en formato JSON", 400)
+    campos, mensaje = _validar_puesto(datos, parcial=False)
+    if mensaje:
+        return error(mensaje, 400)
+    productos_crudos = datos.get("productos", [])
+    if not isinstance(productos_crudos, list) or not all(isinstance(p, dict) for p in productos_crudos):
+        return error("productos debe ser una lista de productos", 400)
+    productos = []
+    for crudo in productos_crudos:
+        producto, mensaje = _validar_producto(crudo, parcial=False)
+        if mensaje:
+            return error(mensaje, 400)
+        productos.append(producto)
+
+    sesion = usuario_actual()
+    propietario_id = sesion["id"]
+    with db_cursor() as cursor:  # una sola transacción: puesto + productos
+        if sesion["rol"] == "admin" and datos.get("propietario_id") is not None:
+            propietario_id = datos["propietario_id"]
+            if isinstance(propietario_id, bool) or not isinstance(propietario_id, int):
+                return error("propietario_id no es válido", 400)
+            cursor.execute("SELECT id FROM usuarios WHERE id = %s AND rol IN ('locatario', 'admin')", (propietario_id,))
+            if cursor.fetchone() is None:
+                return error("propietario_id no corresponde a un locatario", 400)
+        cursor.execute(
+            "INSERT INTO puestos (propietario_id, nombre, descripcion, categoria, latitud, longitud, horario, estatus) "
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, 'verificado')",
+            (propietario_id, campos["nombre"], campos.get("descripcion"), campos["categoria"],
+             campos["latitud"], campos["longitud"], campos.get("horario")))
+        puesto_id = cursor.lastrowid
+        for p in productos:
+            cursor.execute("INSERT INTO productos (puesto_id, nombre, precio, disponible) VALUES (%s, %s, %s, %s)",
+                           (puesto_id, p["nombre"], p["precio"], p["disponible"]))
+        resultado = _puesto_con_productos(cursor, puesto_id, True)
+    return jsonify(resultado), 201
+
+
+@puestos_bp.route("/api/puestos/mios")
+@rol_requerido("locatario", "admin")
+def mios():
+    sesion = usuario_actual()
+    consulta, parametros = f"SELECT {CAMPOS_PUESTO} FROM puestos", []
+    if sesion["rol"] != "admin":
+        consulta += " WHERE propietario_id = %s"
+        parametros.append(sesion["id"])
+    with db_cursor(commit=False) as cursor:
+        cursor.execute(consulta + " ORDER BY id", parametros)
+        return jsonify([_puesto_json(f) for f in cursor.fetchall()])
+
+
+@puestos_bp.route("/api/puestos/<int:puesto_id>", methods=["PUT"])
+@login_requerido
+def editar(puesto_id):
+    es_json = request.is_json
+    datos = _cuerpo_json() if es_json else request.form.to_dict()
+    if datos is None:
+        return error("Envía los datos en formato JSON o como formulario", 400)
+    editables = {k: v for k, v in datos.items() if k in ("nombre", "descripcion", "categoria", "latitud", "longitud", "horario")}
+    archivo = request.files.get("foto")
+    hay_foto = archivo is not None and bool(archivo.filename)
+    if not editables and not hay_foto:
+        return error("No hay nada que actualizar", 400)
+    campos, mensaje = _validar_puesto(editables, parcial=True)
+    if mensaje:
+        return error(mensaje, 400)
+    contenido = extension = None
+    if hay_foto:
+        try:
+            contenido, extension = fotos.validar_foto(archivo)
+        except ValueError as e:
+            return error(str(e), 400)
+
+    foto_nueva = foto_anterior = None
+    try:
+        with db_cursor() as cursor:
+            denegado = _permiso_sobre_puesto(cursor, puesto_id)
+            if denegado:
+                return denegado
+            if contenido:
+                cursor.execute("SELECT foto_url FROM puestos WHERE id = %s FOR UPDATE", (puesto_id,))
+                foto_anterior = cursor.fetchone()["foto_url"]
+                foto_nueva = fotos.guardar_foto(contenido, extension)
+                campos["foto_url"] = foto_nueva
+            asignaciones = ", ".join(f"{columna} = %s" for columna in campos)  # columnas de lista blanca
+            cursor.execute(f"UPDATE puestos SET {asignaciones} WHERE id = %s", (*campos.values(), puesto_id))
+            resultado = _puesto_con_productos(cursor, puesto_id, True)
+    except Exception:
+        fotos.borrar_foto(foto_nueva)
+        raise
+    fotos.borrar_foto(foto_anterior)
+    return jsonify(resultado)
+
+
+# --- Escritura: productos --------------------------------------------------------------------
+@puestos_bp.route("/api/puestos/<int:puesto_id>/productos", methods=["POST"])
+@login_requerido
+def agregar_producto(puesto_id):
+    datos = _cuerpo_json()
+    if datos is None:
+        return error("Envía los datos en formato JSON", 400)
+    campos, mensaje = _validar_producto(datos, parcial=False)
+    if mensaje:
+        return error(mensaje, 400)
+    with db_cursor() as cursor:
+        denegado = _permiso_sobre_puesto(cursor, puesto_id)
+        if denegado:
+            return denegado
+        cursor.execute("INSERT INTO productos (puesto_id, nombre, precio, disponible) VALUES (%s, %s, %s, %s)",
+                       (puesto_id, campos["nombre"], campos["precio"], campos["disponible"]))
+        producto = {"id": cursor.lastrowid, **campos}
+    return jsonify(_producto_json(producto)), 201
+
+
+@puestos_bp.route("/api/productos/<int:producto_id>", methods=["PATCH"])
+@login_requerido
+def editar_producto(producto_id):
+    datos = _cuerpo_json()
+    if datos is None:
+        return error("Envía los datos en formato JSON", 400)
+    editables = {k: v for k, v in datos.items() if k in ("nombre", "precio", "disponible")}
+    if not editables:
+        return error("No hay nada que actualizar", 400)
+    campos, mensaje = _validar_producto(editables, parcial=True)
+    if mensaje:
+        return error(mensaje, 400)
+    with db_cursor() as cursor:
+        cursor.execute("SELECT puesto_id FROM productos WHERE id = %s", (producto_id,))
+        fila = cursor.fetchone()
+        if fila is None:
+            return error("No encontramos ese producto", 404)
+        if not es_dueno_o_admin(cursor, fila["puesto_id"], usuario_actual()):
+            return error("No tienes permiso para editar este producto", 403)
+        asignaciones = ", ".join(f"{columna} = %s" for columna in campos)  # columnas de lista blanca
+        cursor.execute(f"UPDATE productos SET {asignaciones} WHERE id = %s", (*campos.values(), producto_id))
+        cursor.execute("SELECT id, nombre, precio, disponible FROM productos WHERE id = %s", (producto_id,))
+        producto = cursor.fetchone()
+    return jsonify(_producto_json(producto))

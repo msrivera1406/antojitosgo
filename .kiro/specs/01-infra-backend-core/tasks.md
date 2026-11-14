@@ -39,13 +39,13 @@ Marca cada tarea al terminarla. Las tareas de **Fase 0** desbloquean a los demá
   - [x] 6.2 `GET /api/puestos/<id>` y `GET /api/puestos/categorias`
   - [x] 6.3 Pruebas de lectura
   - _Requisitos: R5.1 a R5.3_
-- [ ] 7. Puestos, escritura
+- [x] 7. Puestos, escritura
   - [x] 7.1 Helper de validación y guardado de foto (firma de bytes, 5 MB, `uuid4`)
   - [x] 7.2 `POST /api/puestos/recomendar` (+50 puntos, `recomendado_por`, hito de cupón, todo atómico, limpieza de foto si falla)
-  - [ ] 7.3 `POST /api/puestos/crear` con productos en una transacción
-  - [ ] 7.4 `GET /api/puestos/mios`, `PUT /api/puestos/<id>`
-  - [ ] 7.5 `POST /api/puestos/<id>/productos`, `PATCH /api/productos/<id>`
-  - [ ] 7.6 Pruebas de escritura y permisos
+  - [x] 7.3 `POST /api/puestos/crear` con productos en una transacción
+  - [x] 7.4 `GET /api/puestos/mios`, `PUT /api/puestos/<id>`
+  - [x] 7.5 `POST /api/puestos/<id>/productos`, `PATCH /api/productos/<id>`
+  - [x] 7.6 Pruebas de escritura y permisos
   - _Requisitos: R5.4 a R5.10, R8.2_
 - [x] 8. Datos semilla
   - [x] 8.1 `scripts/generar_hash.py` y hashes de los usuarios de prueba

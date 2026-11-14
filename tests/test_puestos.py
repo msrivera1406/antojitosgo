@@ -1,4 +1,4 @@
-"""Pruebas de puestos (spec 01): lectura (6), foto (7.1) y POST /api/puestos/recomendar (7.2)."""
+"""Pruebas de puestos (spec 01): lectura (6), foto (7.1), recomendar (7.2) y escritura (7.3 a 7.6)."""
 import io
 import os
 import re
@@ -268,3 +268,295 @@ def test_detalle_inexistente_da_404_json(client_bd):
 def test_categorias_no_choca_con_la_ruta_de_detalle(client_bd):
     assert client_bd.get("/api/puestos/categorias").get_json() == config.CATEGORIAS
     assert client_bd.get("/api/puestos/abc").status_code == 404
+
+# --- Escritura de puestos y productos (tareas 7.3 a 7.6) -------------------------------------------
+NUEVO = {"nombre": "Tacos El Güero", "categoria": "tacos", "descripcion": "Al pastor", "latitud": 19.43,
+         "longitud": -99.13, "horario": "10:00 a 18:00",
+         "productos": [{"nombre": "Taco de pastor", "precio": 15}, {"nombre": "Taco de suadero", "precio": "17.50", "disponible": False}]}
+
+
+def contar(cursor, tabla):
+    cursor.execute(f"SELECT COUNT(*) AS n FROM {tabla}")
+    return cursor.fetchone()["n"]
+
+
+def datos_puesto(cursor, puesto_id):
+    cursor.execute("SELECT * FROM puestos WHERE id = %s", (puesto_id,))
+    return cursor.fetchone()
+
+
+@pytest.fixture
+def escenario(crear_usuario, crear_puesto):
+    """Un locatario dueño de un puesto, otro locatario, un cliente y un admin."""
+    dueno, otro = crear_usuario("locatario"), crear_usuario("locatario")
+    return {"dueno": dueno, "otro": otro, "cliente": crear_usuario(), "admin": crear_usuario("admin"),
+            "puesto": crear_puesto(propietario_id=dueno["id"])}
+
+
+# --- POST /api/puestos/crear ---
+def test_crear_sin_sesion_da_401_y_cliente_da_403(client_bd, cursor, crear_usuario, login):
+    assert client_bd.post("/api/puestos/crear", json=NUEVO).status_code == 401
+    login(client_bd, crear_usuario())
+    assert client_bd.post("/api/puestos/crear", json=NUEVO).status_code == 403
+    assert contar(cursor, "puestos") == 0
+
+
+def test_crear_como_locatario_guarda_puesto_verificado_con_sus_productos(client_bd, cursor, crear_usuario, login):
+    locatario = crear_usuario("locatario")
+    login(client_bd, locatario)
+    r = client_bd.post("/api/puestos/crear", json=NUEVO)
+    assert r.status_code == 201
+    cuerpo = r.get_json()
+    assert cuerpo["estatus"] == "verificado" and cuerpo["nombre"] == "Tacos El Güero" and cuerpo["horario"] == "10:00 a 18:00"
+    assert [(p["nombre"], p["precio"], p["disponible"]) for p in cuerpo["productos"]] == [
+        ("Taco de pastor", 15.0, True), ("Taco de suadero", 17.5, False)]
+    bd = datos_puesto(cursor, cuerpo["id"])
+    assert bd["propietario_id"] == locatario["id"] and bd["recomendado_por"] is None
+
+
+def test_crear_sin_productos_es_valido(client_bd, crear_usuario, login):
+    login(client_bd, crear_usuario("locatario"))
+    sin = {k: v for k, v in NUEVO.items() if k != "productos"}
+    r = client_bd.post("/api/puestos/crear", json=sin)
+    assert r.status_code == 201 and r.get_json()["productos"] == []
+
+
+def test_crear_un_producto_invalido_no_guarda_nada(client_bd, cursor, crear_usuario, login):
+    login(client_bd, crear_usuario("locatario"))
+    malo = {**NUEVO, "productos": [{"nombre": "Bueno", "precio": 10}, {"nombre": "Malo", "precio": 0}]}
+    assert client_bd.post("/api/puestos/crear", json=malo).status_code == 400
+    assert contar(cursor, "puestos") == 0 and contar(cursor, "productos") == 0
+
+
+@pytest.mark.parametrize("cambios", [
+    {"nombre": ""}, {"nombre": 5}, {"nombre": "x" * 121}, {"categoria": "pizza"}, {"categoria": None},
+    {"latitud": 18.9}, {"longitud": -98.8}, {"latitud": "abc"}, {"latitud": True}, {"descripcion": "x" * 501},
+    {"horario": "x" * 101}, {"horario": 7}, {"productos": "taco"}, {"productos": ["taco"]},
+])
+def test_crear_con_datos_invalidos_da_400(client_bd, cursor, crear_usuario, login, cambios):
+    login(client_bd, crear_usuario("locatario"))
+    assert client_bd.post("/api/puestos/crear", json={**NUEVO, **cambios}).status_code == 400
+    assert contar(cursor, "puestos") == 0
+
+
+@pytest.mark.parametrize("campo", ["nombre", "categoria", "latitud", "longitud"])
+def test_crear_con_campo_obligatorio_faltante_da_400(client_bd, crear_usuario, login, campo):
+    login(client_bd, crear_usuario("locatario"))
+    assert client_bd.post("/api/puestos/crear", json={k: v for k, v in NUEVO.items() if k != campo}).status_code == 400
+
+
+def test_crear_sin_json_da_400(client_bd, crear_usuario, login):
+    login(client_bd, crear_usuario("locatario"))
+    assert client_bd.post("/api/puestos/crear", data="x").status_code == 400
+
+
+def test_crear_locatario_no_puede_elegir_propietario_pero_admin_si(client_bd, cursor, crear_usuario, login):
+    locatario, otro, admin = crear_usuario("locatario"), crear_usuario("locatario"), crear_usuario("admin")
+    login(client_bd, locatario)
+    propio = client_bd.post("/api/puestos/crear", json={**NUEVO, "propietario_id": otro["id"]}).get_json()
+    assert datos_puesto(cursor, propio["id"])["propietario_id"] == locatario["id"]
+    login(client_bd, admin)
+    ajeno = client_bd.post("/api/puestos/crear", json={**NUEVO, "propietario_id": otro["id"]}).get_json()
+    assert datos_puesto(cursor, ajeno["id"])["propietario_id"] == otro["id"]
+    propio_admin = client_bd.post("/api/puestos/crear", json=NUEVO).get_json()
+    assert datos_puesto(cursor, propio_admin["id"])["propietario_id"] == admin["id"]
+
+
+def test_crear_admin_con_propietario_invalido_da_400(client_bd, cursor, crear_usuario, login):
+    cliente, admin = crear_usuario(), crear_usuario("admin")
+    login(client_bd, admin)
+    for malo in (cliente["id"], 99999, "1", True):
+        assert client_bd.post("/api/puestos/crear", json={**NUEVO, "propietario_id": malo}).status_code == 400
+    assert contar(cursor, "puestos") == 0
+
+
+# --- GET /api/puestos/mios ---
+def test_mios_exige_rol_de_locatario_o_admin(client_bd, escenario, login):
+    assert client_bd.get("/api/puestos/mios").status_code == 401
+    login(client_bd, escenario["cliente"])
+    assert client_bd.get("/api/puestos/mios").status_code == 403
+
+
+def test_mios_lista_solo_los_del_locatario_y_todos_para_admin(client_bd, escenario, crear_puesto, login):
+    de_otro = crear_puesto(propietario_id=escenario["otro"]["id"])
+    sin_dueno = crear_puesto(estatus="recomendado")
+    login(client_bd, escenario["dueno"])
+    assert [p["id"] for p in client_bd.get("/api/puestos/mios").get_json()] == [escenario["puesto"]]
+    login(client_bd, escenario["otro"])
+    assert [p["id"] for p in client_bd.get("/api/puestos/mios").get_json()] == [de_otro]
+    login(client_bd, escenario["admin"])
+    assert [p["id"] for p in client_bd.get("/api/puestos/mios").get_json()] == [escenario["puesto"], de_otro, sin_dueno]
+
+
+def test_mios_no_choca_con_el_detalle(client_bd, escenario, login):
+    login(client_bd, escenario["dueno"])
+    assert isinstance(client_bd.get("/api/puestos/mios").get_json(), list)
+
+
+# --- PUT /api/puestos/<id> ---
+def test_editar_permisos(client_bd, escenario, login):
+    url = f"/api/puestos/{escenario['puesto']}"
+    assert client_bd.put(url, json={"nombre": "Nuevo"}).status_code == 401
+    for quien in ("otro", "cliente"):
+        login(client_bd, escenario[quien])
+        assert client_bd.put(url, json={"nombre": "Nuevo"}).status_code == 403
+    login(client_bd, escenario["dueno"])
+    assert client_bd.put("/api/puestos/99999", json={"nombre": "Nuevo"}).status_code == 404
+
+
+def test_editar_cambia_solo_los_campos_enviados(client_bd, cursor, escenario, login):
+    login(client_bd, escenario["dueno"])
+    antes = datos_puesto(cursor, escenario["puesto"])
+    r = client_bd.put(f"/api/puestos/{escenario['puesto']}", json={"nombre": "  Nombre nuevo ", "horario": "9 a 5"})
+    assert r.status_code == 200 and r.get_json()["nombre"] == "Nombre nuevo" and r.get_json()["horario"] == "9 a 5"
+    despues = datos_puesto(cursor, escenario["puesto"])
+    assert despues["categoria"] == antes["categoria"] and despues["latitud"] == antes["latitud"]
+
+
+def test_editar_el_admin_puede_con_cualquier_puesto(client_bd, escenario, login):
+    login(client_bd, escenario["admin"])
+    assert client_bd.put(f"/api/puestos/{escenario['puesto']}", json={"categoria": "tortas"}).get_json()["categoria"] == "tortas"
+
+
+def test_editar_ignora_estatus_propietario_y_foto_url(client_bd, cursor, escenario, login):
+    login(client_bd, escenario["dueno"])
+    r = client_bd.put(f"/api/puestos/{escenario['puesto']}", json={
+        "nombre": "Ok", "estatus": "recomendado", "propietario_id": escenario["otro"]["id"], "foto_url": "http://malo/x.jpg"})
+    assert r.status_code == 200
+    bd = datos_puesto(cursor, escenario["puesto"])
+    assert (bd["estatus"], bd["propietario_id"], bd["foto_url"]) == ("verificado", escenario["dueno"]["id"], None)
+
+
+@pytest.mark.parametrize("cuerpo", [
+    {}, {"estatus": "verificado"}, {"nombre": ""}, {"categoria": "pizza"}, {"latitud": 19.4},
+    {"latitud": 10, "longitud": -99.1}, {"descripcion": "x" * 501}, {"horario": ["a"]},
+])
+def test_editar_con_datos_invalidos_o_vacios_da_400(client_bd, cursor, escenario, login, cuerpo):
+    login(client_bd, escenario["dueno"])
+    antes = datos_puesto(cursor, escenario["puesto"])
+    assert client_bd.put(f"/api/puestos/{escenario['puesto']}", json=cuerpo).status_code == 400
+    assert datos_puesto(cursor, escenario["puesto"]) == antes
+
+
+def test_editar_la_ubicacion_exige_latitud_y_longitud(client_bd, escenario, login):
+    login(client_bd, escenario["dueno"])
+    r = client_bd.put(f"/api/puestos/{escenario['puesto']}", json={"latitud": 19.5, "longitud": -99.2})
+    assert r.status_code == 200 and (r.get_json()["latitud"], r.get_json()["longitud"]) == (19.5, -99.2)
+
+
+def test_editar_foto_reemplaza_y_borra_la_anterior(client_bd, escenario, login):
+    login(client_bd, escenario["dueno"])
+    url = f"/api/puestos/{escenario['puesto']}"
+    primera = client_bd.put(url, data={"foto": (io.BytesIO(JPG), "a.jpg")}, content_type="multipart/form-data").get_json()["foto_url"]
+    assert os.listdir(config.UPLOAD_DIR) == [os.path.basename(primera)]
+    segunda = client_bd.put(url, data={"nombre": "Con foto", "foto": (io.BytesIO(PNG), "b.png")},
+                            content_type="multipart/form-data").get_json()
+    assert segunda["foto_url"] != primera and segunda["nombre"] == "Con foto"
+    assert os.listdir(config.UPLOAD_DIR) == [os.path.basename(segunda["foto_url"])]
+
+
+def test_editar_con_foto_invalida_da_400_y_conserva_la_anterior(client_bd, escenario, login):
+    login(client_bd, escenario["dueno"])
+    url = f"/api/puestos/{escenario['puesto']}"
+    buena = client_bd.put(url, data={"foto": (io.BytesIO(JPG), "a.jpg")}, content_type="multipart/form-data").get_json()["foto_url"]
+    r = client_bd.put(url, data={"foto": (io.BytesIO(b"<?php"), "x.jpg")}, content_type="multipart/form-data")
+    assert r.status_code == 400
+    assert os.listdir(config.UPLOAD_DIR) == [os.path.basename(buena)]
+
+
+def test_editar_sin_permiso_con_foto_no_guarda_el_archivo(client_bd, escenario, login):
+    login(client_bd, escenario["otro"])
+    r = client_bd.put(f"/api/puestos/{escenario['puesto']}", data={"foto": (io.BytesIO(JPG), "a.jpg")},
+                      content_type="multipart/form-data")
+    assert r.status_code == 403
+    assert not os.path.exists(config.UPLOAD_DIR) or os.listdir(config.UPLOAD_DIR) == []
+
+
+# --- POST /api/puestos/<id>/productos ---
+def test_agregar_producto_permisos(client_bd, escenario, login):
+    url = f"/api/puestos/{escenario['puesto']}/productos"
+    nuevo = {"nombre": "Dorilocos", "precio": 45}
+    assert client_bd.post(url, json=nuevo).status_code == 401
+    for quien in ("otro", "cliente"):
+        login(client_bd, escenario[quien])
+        assert client_bd.post(url, json=nuevo).status_code == 403
+    login(client_bd, escenario["dueno"])
+    assert client_bd.post("/api/puestos/99999/productos", json=nuevo).status_code == 404
+
+
+def test_agregar_producto_como_dueno_y_como_admin(client_bd, cursor, escenario, login):
+    url = f"/api/puestos/{escenario['puesto']}/productos"
+    login(client_bd, escenario["dueno"])
+    r = client_bd.post(url, json={"nombre": " Dorilocos ", "precio": "45.50"})
+    assert r.status_code == 201
+    assert {k: r.get_json()[k] for k in ("nombre", "precio", "disponible")} == {"nombre": "Dorilocos", "precio": 45.5, "disponible": True}
+    login(client_bd, escenario["admin"])
+    r = client_bd.post(url, json={"nombre": "Tostilocos", "precio": 40, "disponible": False})
+    assert r.status_code == 201 and r.get_json()["disponible"] is False
+    assert contar(cursor, "productos") == 2
+
+
+@pytest.mark.parametrize("cuerpo", [
+    {"precio": 10}, {"nombre": "Taco"}, {"nombre": "", "precio": 10}, {"nombre": "x" * 101, "precio": 10},
+    {"nombre": "Taco", "precio": 0}, {"nombre": "Taco", "precio": -5}, {"nombre": "Taco", "precio": "abc"},
+    {"nombre": "Taco", "precio": 10.999}, {"nombre": "Taco", "precio": True}, {"nombre": "Taco", "precio": None},
+    {"nombre": "Taco", "precio": 1000000}, {"nombre": "Taco", "precio": "nan"}, {"nombre": "Taco", "precio": [1]},
+    {"nombre": "Taco", "precio": 10, "disponible": "si"},
+])
+def test_agregar_producto_invalido_da_400(client_bd, cursor, escenario, login, cuerpo):
+    login(client_bd, escenario["dueno"])
+    assert client_bd.post(f"/api/puestos/{escenario['puesto']}/productos", json=cuerpo).status_code == 400
+    assert contar(cursor, "productos") == 0
+
+
+# --- PATCH /api/productos/<id> ---
+@pytest.fixture
+def producto(cursor, escenario):
+    return crear_producto(cursor, escenario["puesto"], "Taco", 12.5)
+
+
+def test_editar_producto_permisos(client_bd, escenario, producto, login):
+    url = f"/api/productos/{producto}"
+    assert client_bd.patch(url, json={"precio": 20}).status_code == 401
+    for quien in ("otro", "cliente"):
+        login(client_bd, escenario[quien])
+        assert client_bd.patch(url, json={"precio": 20}).status_code == 403
+    login(client_bd, escenario["dueno"])
+    assert client_bd.patch("/api/productos/99999", json={"precio": 20}).status_code == 404
+
+
+def test_editar_producto_cambia_nombre_precio_y_disponibilidad(client_bd, escenario, producto, login):
+    url = f"/api/productos/{producto}"
+    login(client_bd, escenario["dueno"])
+    r = client_bd.patch(url, json={"precio": 20})
+    assert r.get_json() == {"id": producto, "nombre": "Taco", "precio": 20.0, "disponible": True}
+    assert client_bd.patch(url, json={"disponible": False}).get_json()["disponible"] is False
+    r = client_bd.patch(url, json={"nombre": " Taco grande ", "disponible": True})
+    assert (r.get_json()["nombre"], r.get_json()["disponible"], r.get_json()["precio"]) == ("Taco grande", True, 20.0)
+    login(client_bd, escenario["admin"])
+    assert client_bd.patch(url, json={"precio": 25}).get_json()["precio"] == 25.0
+
+
+def test_editar_producto_un_producto_desactivado_se_oculta_al_publico(client_bd, escenario, producto, login):
+    login(client_bd, escenario["dueno"])
+    client_bd.patch(f"/api/productos/{producto}", json={"disponible": False})
+    with client_bd.session_transaction() as s:
+        s.clear()
+    assert client_bd.get(f"/api/puestos/{escenario['puesto']}").get_json()["productos"] == []
+
+
+@pytest.mark.parametrize("cuerpo", [
+    {}, {"otro": 1}, {"precio": 0}, {"precio": "x"}, {"precio": 1.234}, {"nombre": ""}, {"disponible": 1}, {"disponible": None},
+])
+def test_editar_producto_invalido_da_400_sin_cambios(client_bd, cursor, escenario, producto, login, cuerpo):
+    login(client_bd, escenario["dueno"])
+    assert client_bd.patch(f"/api/productos/{producto}", json=cuerpo).status_code == 400
+    cursor.execute("SELECT nombre, precio, disponible FROM productos WHERE id = %s", (producto,))
+    assert cursor.fetchone() == {"nombre": "Taco", "precio": 12.5, "disponible": 1}
+
+
+def test_editar_producto_no_cambia_el_puesto_ni_acepta_id(client_bd, cursor, escenario, producto, login):
+    login(client_bd, escenario["dueno"])
+    client_bd.patch(f"/api/productos/{producto}", json={"precio": 30, "puesto_id": 999, "id": 999})
+    cursor.execute("SELECT puesto_id FROM productos WHERE id = %s", (producto,))
+    assert cursor.fetchone()["puesto_id"] == escenario["puesto"]
