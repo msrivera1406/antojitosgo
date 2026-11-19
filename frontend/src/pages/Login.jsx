@@ -30,12 +30,13 @@ export default function Login() {
   };
 
   return (
+    <main id="contenido" className="flex min-h-dvh flex-col justify-center bg-crema-50">
     <div className="pagina-estrecha animate-aparecer space-y-6 py-8">
       <header className="flex flex-col items-center gap-3 text-center">
         <MarcaPin className="h-16 w-16" />
-        <h1 className="text-titulo-1">{modo === 'registro' ? 'Crea tu cuenta' : 'Qué bueno verte'}</h1>
+        <h1 className="text-titulo-1">{modo === 'registro' ? 'Crea tu cuenta' : 'Te damos la bienvenida'}</h1>
         <p className="text-tinta-600">
-          {modo === 'registro' ? 'Descubre puestos, consulta sus menús, deja reseñas y gana puntos al recomendar.' : 'Entra para dejar reseñas, recomendar puestos y ver tus puntos.'}
+          {modo === 'registro' ? 'Descubre puestos, consulta sus menús, deja reseñas y gana puntos al recomendar.' : 'Inicia sesión para explorar el mapa, consultar menús y dejar reseñas.'}
         </p>
       </header>
 
@@ -52,5 +53,6 @@ export default function Login() {
         </p>
       )}
     </div>
+    </main>
   );
 }

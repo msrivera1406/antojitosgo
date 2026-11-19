@@ -7,9 +7,9 @@ import re
 
 from flask import Blueprint, jsonify, request
 from mysql.connector import errors as errores_mysql
-from werkzeug.security import check_password_hash, generate_password_hash
 
 from db import db_cursor
+from utils.contrasenas import hashear, verificar
 from utils.auth import cerrar_sesion, iniciar_sesion, login_requerido, usuario_actual
 from utils.cupones import listar_cupones_vigentes, progreso_usuario
 from utils.puntos import obtener_insignia
@@ -23,7 +23,7 @@ NOMBRE_MAX, EMAIL_MAX = 100, 120
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 MSG_CREDENCIALES = "Correo o contraseña incorrectos"
 # Hash de relleno: se compara cuando el correo no existe, para que ambos fallos tarden parecido.
-_HASH_RELLENO = generate_password_hash("relleno-sin-uso", method="pbkdf2:sha256")
+_HASH_RELLENO = hashear("relleno-sin-uso")
 
 
 def _usuario_json(fila):
@@ -61,7 +61,7 @@ def registro():
                 return error("Ya existe una cuenta con ese correo", 409)
             cursor.execute(
                 "INSERT INTO usuarios (nombre, email, password_hash, rol) VALUES (%s, %s, %s, %s)",
-                (nombre, email, generate_password_hash(password), rol))
+                (nombre, email, hashear(password), rol))
             usuario = {"id": cursor.lastrowid, "nombre": nombre, "email": email, "rol": rol, "puntos": 0}
     except errores_mysql.IntegrityError:  # dos registros simultáneos con el mismo correo
         return error("Ya existe una cuenta con ese correo", 409)
@@ -83,7 +83,7 @@ def login():
             (email.strip().lower(),))
         fila = cursor.fetchone()
     hash_guardado = fila["password_hash"] if fila else _HASH_RELLENO
-    if not check_password_hash(hash_guardado, password) or fila is None:
+    if not verificar(hash_guardado, password) or fila is None:
         return error(MSG_CREDENCIALES, 401)
     iniciar_sesion(fila)
     return jsonify(_usuario_json(fila))

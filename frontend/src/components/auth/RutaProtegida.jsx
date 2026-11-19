@@ -7,7 +7,7 @@ import Cargando from '../ui/Cargando.jsx';
 export default function RutaProtegida({ children }) {
   const { usuario, cargando } = useAuth();
   const { pathname, search } = useLocation();
-  if (cargando) return <Cargando texto="Revisando tu sesión" className="flex-1" />;
+  if (cargando) return <Cargando texto="Revisando tu sesión" className="min-h-dvh" />;
   if (!usuario) return <Navigate to={rutaLoginConNext(pathname + search)} replace />;
   return children;
 }
